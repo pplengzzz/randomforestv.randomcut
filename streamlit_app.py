@@ -44,15 +44,14 @@ def process_data(file_path):
     full_data['lag_1'].ffill(inplace=True)
     full_data['lag_2'].ffill(inplace=True)
 
+    # เพิ่มคอลัมน์ 'week' ให้กับ full_data
+    full_data['week'] = full_data.index.to_period("W").astype(str)
+
     return full_data, original_nan_indexes_full_days
 
 # ฟังก์ชันสำหรับการเติมค่าด้วย RandomForestRegressor
 def fill_missing_values(data, original_nan_indexes_full_days):
     filled_data_full_days_rf = data.copy()
-
-    # ตรวจสอบและสร้างคอลัมน์ 'week' ก่อนใช้งาน
-    if 'week' not in filled_data_full_days_rf.columns:
-        filled_data_full_days_rf['week'] = filled_data_full_days_rf.index.to_period("W").astype(str)
 
     missing_weeks = filled_data_full_days_rf[filled_data_full_days_rf['wl_up'].isna()]['week'].unique()
 
@@ -139,3 +138,4 @@ if uploaded_file is not None:
     # แสดงผลลัพธ์การเติมค่าเป็นตาราง
     st.subheader('ตารางข้อมูลที่เติมค่า (datetime, wl_up)')
     st.write(filled_data[['wl_up']])
+
