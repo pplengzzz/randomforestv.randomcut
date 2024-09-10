@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestRegressor
 
 # ตั้งค่าหน้าเว็บ Streamlit
-st.set_page_config(page_title='Water Level Prediction (RandomForest)', page_icon=':ocean:')
+st.set_page_config(page_title='Water Level Prediction (RandomForest)', page_icon=':ocean:', layout="wide")  # เปลี่ยน layout เป็น wide
 
 # ชื่อของแอป
 st.title("ทดสอบการจัดการข้อมูลระดับน้ำและการพยากรณ์ด้วย RandomForest (สุ่มตัดข้อมูลออก)")
@@ -85,7 +85,7 @@ def fill_missing_values(data, original_nan_indexes_full_days):
 
 # ฟังก์ชันสำหรับการ plot ข้อมูล
 def plot_filled_data(filled_data, original_data, original_nan_indexes_full_days):
-    plt.figure(figsize=(14, 7))
+    plt.figure(figsize=(18, 10))  # ปรับขนาดของกราฟให้ใหญ่ขึ้น
 
     # สีน้ำเงินสำหรับค่าจริงที่ไม่ได้ถูกตัด
     plt.plot(filled_data.index, original_data['wl_up'], label='Actual Values', color='blue', alpha=0.6)
@@ -119,12 +119,13 @@ def plot_filled_data(filled_data, original_data, original_nan_indexes_full_days)
                          filled_data.loc[start:end, 'wl_up'], color='red', alpha=0.6)
 
     # ปรับแต่งสไตล์กราฟ
-    plt.title('Water Level Over Time (Actual, Cut, and Filled Data)')
-    plt.xlabel('Date')
-    plt.ylabel('Water Level (wl_up)')
+    plt.title('Water Level Over Time (Actual, Cut, and Filled Data)', fontsize=18)
+    plt.xlabel('Date', fontsize=16)
+    plt.ylabel('Water Level (wl_up)', fontsize=16)
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.legend()
-    plt.xticks(rotation=45)
+    plt.xticks(rotation=45, fontsize=14)
+    plt.yticks(fontsize=14)
     st.pyplot(plt)
 
 # การประมวลผลหลังจากอัปโหลดไฟล์
@@ -158,5 +159,6 @@ if uploaded_file is not None:
         st.write(filled_data[['wl_up']])
     else:
         st.error("กรุณาเลือกช่วงวันที่ที่ถูกต้อง (วันเริ่มต้นต้องน้อยกว่าวันสิ้นสุด)")
+
 
 
