@@ -138,17 +138,20 @@ if uploaded_file is not None:
 
     # ตรวจสอบว่าช่วงวันที่เลือกถูกต้อง
     if start_date < end_date:
+        # กรองข้อมูลตามช่วงวันที่ที่เลือก
+        data_selected = full_data.loc[start_date:end_date]
+
         # สุ่มตัดข้อมูลตามวันที่ที่ผู้ใช้เลือก
-        full_data, original_nan_indexes_full_days = random_cut_data(full_data, start_date, end_date)
+        data_selected, original_nan_indexes_full_days = random_cut_data(data_selected, start_date, end_date)
 
         # เติมค่าและเก็บตำแหน่งของ NaN เดิม
-        filled_data = fill_missing_values(full_data, original_nan_indexes_full_days)
+        filled_data = fill_missing_values(data_selected, original_nan_indexes_full_days)
 
         # พล๊อตผลลัพธ์การเติมค่า
         st.markdown("---")
         st.write("ทำนายระดับน้ำและเติมค่าในข้อมูลที่ขาดหาย")
 
-        plot_filled_data(filled_data, full_data, original_nan_indexes_full_days)
+        plot_filled_data(filled_data, data_selected, original_nan_indexes_full_days)
 
         # แสดงผลลัพธ์การเติมค่าเป็นตาราง
         st.subheader('ตารางข้อมูลที่เติมค่า (datetime, wl_up)')
