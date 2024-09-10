@@ -81,6 +81,10 @@ def fill_missing_values(data, original_nan_indexes_full_days):
                 idx_to_fill = filled_data_full_days_rf.index.intersection(X_missing_clean.index)
                 filled_data_full_days_rf.loc[idx_to_fill, 'wl_up'] = filled_values[:len(idx_to_fill)]
 
+    # เติมค่าที่ขาดหายด้วย ffill และ bfill หลังจากใช้ RandomForestRegressor
+    filled_data_full_days_rf['wl_up'].ffill(inplace=True)
+    filled_data_full_days_rf['wl_up'].bfill(inplace=True)
+
     return filled_data_full_days_rf
 
 # ฟังก์ชันสำหรับการ plot ข้อมูล
@@ -159,6 +163,5 @@ if uploaded_file is not None:
         st.write(filled_data[['wl_up']])
     else:
         st.error("กรุณาเลือกช่วงวันที่ที่ถูกต้อง (วันเริ่มต้นต้องน้อยกว่าวันสิ้นสุด)")
-
 
 
