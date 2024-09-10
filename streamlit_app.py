@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestRegressor
 
 # ตั้งค่าหน้าเว็บ Streamlit
-st.set_page_config(page_title='Water Level Prediction (RandomForest)', page_icon=':ocean:', layout="wide")  # เปลี่ยน layout เป็น wide
+st.set_page_config(page_title='Water Level Prediction (RandomForest)', page_icon=':ocean:')
 
 # ชื่อของแอป
 st.title("ทดสอบการจัดการข้อมูลระดับน้ำและการพยากรณ์ด้วย RandomForest (สุ่มตัดข้อมูลออก)")
