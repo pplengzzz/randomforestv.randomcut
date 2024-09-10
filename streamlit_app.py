@@ -19,6 +19,7 @@ def process_data(file_path):
 
     # ตรวจสอบให้แน่ใจว่าคอลัมน์ 'datetime' เป็นแบบ datetime และตั้งค่าให้เป็น index
     data['datetime'] = pd.to_datetime(data['datetime'])
+    data['datetime'] = data['datetime'].dt.tz_localize(None)  # ทำให้เป็น tz-naive (ไม่มี timezone)
     data.set_index('datetime', inplace=True)
 
     # เพิ่มฟีเจอร์ด้านเวลา
