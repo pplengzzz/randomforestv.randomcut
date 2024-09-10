@@ -21,33 +21,38 @@ def process_data(file_path):
     data['datetime'] = pd.to_datetime(data['datetime'])
     data.set_index('datetime', inplace=True)
 
-    # สุ่มตัดข้อมูลทั้งวัน
-    np.random.seed(42)
-    full_data = data.copy()
-    days_to_remove = np.random.choice(full_data.index.to_period('D').unique(), size=2, replace=False)  # เลือก 2 วันสุ่ม
-    missing_indexes_full_days = full_data[full_data.index.to_period('D').isin(days_to_remove)].index
-
-    # เก็บตำแหน่ง NaN ก่อนเติมค่า
-    original_nan_indexes_full_days = missing_indexes_full_days
-    full_data.loc[missing_indexes_full_days, 'wl_up'] = np.nan  # ตัดข้อมูลออกทั้งวัน
-
     # เพิ่มฟีเจอร์ด้านเวลา
-    full_data['hour'] = full_data.index.hour
-    full_data['day_of_week'] = full_data.index.dayofweek
-    full_data['minute'] = full_data.index.minute
+    data['hour'] = data.index.hour
+    data['day_of_week'] = data.index.dayofweek
+    data['minute'] = data.index.minute
 
     # เพิ่ม Lag Features
-    full_data['lag_1'] = full_data['wl_up'].shift(1)
-    full_data['lag_2'] = full_data['wl_up'].shift(2)
+    data['lag_1'] = data['wl_up'].shift(1)
+    data['lag_2'] = data['wl_up'].shift(2)
 
     # เติมค่าใน lag features
-    full_data['lag_1'].ffill(inplace=True)
-    full_data['lag_2'].ffill(inplace=True)
+    data['lag_1'].ffill(inplace=True)
+    data['lag_2'].ffill(inplace=True)
 
     # เพิ่มคอลัมน์ 'week' ให้กับ full_data
-    full_data['week'] = full_data.index.to_period("W").astype(str)
+    data['week'] = data.index.to_period("W").astype(str)
 
-    return full_data, original_nan_indexes_full_days
+    return data
+
+# ฟังก์ชันสำหรับการสุ่มตัดข้อมูลตามวันที่ที่ผู้ใช้เลือก
+def random_cut_data(data, start_date, end_date):
+    # กรองข้อมูลตามช่วงวันที่
+    data_in_range = data.loc[start_date:end_date]
+    
+    # สุ่มตัดข้อมูลทั้งวัน
+    np.random.seed(42)
+    days_to_remove = np.random.choice(data_in_range.index.to_period('D').unique(), size=2, replace=False)  # เลือก 2 วันสุ่ม
+    missing_indexes_full_days = data_in_range[data_in_range.index.to_period('D').isin(days_to_remove)].index
+
+    # ตัดข้อมูลออกทั้งวัน
+    data.loc[missing_indexes_full_days, 'wl_up'] = np.nan
+
+    return data, missing_indexes_full_days
 
 # ฟังก์ชันสำหรับการเติมค่าด้วย RandomForestRegressor
 def fill_missing_values(data, original_nan_indexes_full_days):
@@ -124,18 +129,30 @@ def plot_filled_data(filled_data, original_data, original_nan_indexes_full_days)
 # การประมวลผลหลังจากอัปโหลดไฟล์
 if uploaded_file is not None:
     # อ่านและประมวลผลข้อมูลจากไฟล์
-    full_data, original_nan_indexes_full_days = process_data(uploaded_file)
+    full_data = process_data(uploaded_file)
 
-    # เติมค่าและเก็บตำแหน่งของ NaN เดิม
-    filled_data = fill_missing_values(full_data, original_nan_indexes_full_days)
+    # ให้ผู้ใช้เลือกช่วงวันที่สำหรับการสุ่มตัด
+    start_date = st.date_input("เลือกวันเริ่มต้นสำหรับการสุ่มตัด", pd.to_datetime(full_data.index.min()).date())
+    end_date = st.date_input("เลือกวันสิ้นสุดสำหรับการสุ่มตัด", pd.to_datetime(full_data.index.max()).date())
 
-    # พล๊อตผลลัพธ์การเติมค่า
-    st.markdown("---")
-    st.write("ทำนายระดับน้ำและเติมค่าในข้อมูลที่ขาดหาย")
+    # ตรวจสอบว่าช่วงวันที่เลือกถูกต้อง
+    if start_date < end_date:
+        # สุ่มตัดข้อมูลตามวันที่ที่ผู้ใช้เลือก
+        full_data, original_nan_indexes_full_days = random_cut_data(full_data, start_date, end_date)
 
-    plot_filled_data(filled_data, full_data, original_nan_indexes_full_days)
+        # เติมค่าและเก็บตำแหน่งของ NaN เดิม
+        filled_data = fill_missing_values(full_data, original_nan_indexes_full_days)
 
-    # แสดงผลลัพธ์การเติมค่าเป็นตาราง
-    st.subheader('ตารางข้อมูลที่เติมค่า (datetime, wl_up)')
-    st.write(filled_data[['wl_up']])
+        # พล๊อตผลลัพธ์การเติมค่า
+        st.markdown("---")
+        st.write("ทำนายระดับน้ำและเติมค่าในข้อมูลที่ขาดหาย")
+
+        plot_filled_data(filled_data, full_data, original_nan_indexes_full_days)
+
+        # แสดงผลลัพธ์การเติมค่าเป็นตาราง
+        st.subheader('ตารางข้อมูลที่เติมค่า (datetime, wl_up)')
+        st.write(filled_data[['wl_up']])
+    else:
+        st.error("กรุณาเลือกช่วงวันที่ที่ถูกต้อง (วันเริ่มต้นต้องน้อยกว่าวันสิ้นสุด)")
+
 
