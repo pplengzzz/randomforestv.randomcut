@@ -8,7 +8,7 @@ from sklearn.ensemble import RandomForestRegressor
 st.set_page_config(page_title='Water Level Prediction (RandomForest)', page_icon=':ocean:')
 
 # ชื่อของแอป
-st.title("การจัดการข้อมูลระดับน้ำและการพยากรณ์ด้วย RandomForest")
+st.title("ทดสอบการจัดการข้อมูลระดับน้ำและการพยากรณ์ด้วย RandomForest (สุ่มตัดข้อมูลออก)")
 
 # อัปโหลดไฟล์ CSV
 uploaded_file = st.file_uploader("เลือกไฟล์ CSV", type="csv")
@@ -49,7 +49,11 @@ def process_data(file_path):
 # ฟังก์ชันสำหรับการเติมค่าด้วย RandomForestRegressor
 def fill_missing_values(data, original_nan_indexes_full_days):
     filled_data_full_days_rf = data.copy()
-    filled_data_full_days_rf['week'] = filled_data_full_days_rf.index.to_period("W")
+
+    # ตรวจสอบและสร้างคอลัมน์ 'week' ก่อนใช้งาน
+    if 'week' not in filled_data_full_days_rf.columns:
+        filled_data_full_days_rf['week'] = filled_data_full_days_rf.index.to_period("W").astype(str)
+
     missing_weeks = filled_data_full_days_rf[filled_data_full_days_rf['wl_up'].isna()]['week'].unique()
 
     for week in missing_weeks:
