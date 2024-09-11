@@ -21,7 +21,7 @@ def plot_original_data(data, original_nan_indexes=None):
     if original_nan_indexes is not None:
         fig.add_scatter(x=original_nan_indexes, y=data.loc[original_nan_indexes, 'wl_up'], mode='markers', name='Missing Values (Cut)', marker=dict(color='orange'))
 
-    # ปรับแต่งกราฟ
+    # ปรับแต่งกราฟและซ่อน legend สำหรับกราฟแรก
     fig.update_layout(
         xaxis_title="Date",
         yaxis_title="Water Level (wl_up)",
@@ -47,7 +47,7 @@ def plot_filled_data(original_data, filled_data, original_nan_indexes):
     if original_nan_indexes is not None:
         fig.add_scatter(x=filled_data.loc[original_nan_indexes].index, y=filled_data.loc[original_nan_indexes, 'wl_up'], mode='lines', name='Filled Values (Model)', line=dict(color='green'))
 
-    # ปรับแต่งกราฟ
+    # ปรับแต่งกราฟและลดความเข้มของเส้นจริง (สีน้ำเงิน) ให้โปร่งใสขึ้น
     fig.update_traces(line=dict(color='blue', width=2, dash='solid'), selector=dict(name='Actual Values'))
     fig.update_traces(opacity=0.6, selector=dict(name='Actual Values'))  # เพิ่มความโปร่งใสให้เส้นจริง
     fig.update_layout(
@@ -61,8 +61,8 @@ def plot_filled_data(original_data, filled_data, original_nan_indexes):
     )
     st.plotly_chart(fig)
 
-# ฟังก์ชันสำหรับการเติมค่าด้วย RandomForestRegressor แบบใช้ข้อมูลก่อนหน้าแค่ 2688 ค่า
-def fill_missing_values_with_limited_history(full_data):
+# ฟังก์ชันสำหรับการเติมค่าด้วย RandomForestRegressor แบบใช้ข้อมูลก่อนหน้าแค่ 2688 ค่าจริง
+def fill_missing_values_with_real_only(full_data):
     filled_data = full_data.copy()
 
     # ค้นหาตำแหน่งที่มีค่า NaN
@@ -72,6 +72,7 @@ def fill_missing_values_with_limited_history(full_data):
     for idx in nan_indexes:
         # หาค่าก่อนหน้าสูงสุด 2688 ค่าหรือเท่าที่มีอยู่
         window_start = max(0, filled_data.index.get_loc(idx) - 2688)
+        # เลือกเฉพาะค่าจริงในการฝึกโมเดล
         train_data = filled_data.iloc[window_start:filled_data.index.get_loc(idx)].dropna(subset=['wl_up', 'hour', 'day_of_week', 'minute', 'lag_1', 'lag_2'])
 
         # ใช้ข้อมูลที่มีอยู่แล้วในการฝึกโมเดล
@@ -89,12 +90,11 @@ def fill_missing_values_with_limited_history(full_data):
             filled_value = model.predict(X_missing)
             filled_data.loc[idx, 'wl_up'] = filled_value  # เติมค่าในตำแหน่งที่ NaN
 
-            # อัปเดตค่าที่เติมให้กลายเป็นส่วนหนึ่งของข้อมูลที่ถูกใช้ในการฝึกโมเดล
+            # อัปเดต lag features โดยไม่รวมค่าที่ถูกทำนาย
             filled_data['lag_1'] = filled_data['wl_up'].shift(1)
             filled_data['lag_2'] = filled_data['wl_up'].shift(2)
 
     return filled_data
-
 
 # ฟังก์ชันคำนวณความแม่นยำ
 def calculate_accuracy(filled_data, original_data, original_nan_indexes):
@@ -172,8 +172,8 @@ if uploaded_file is not None:
                 st.subheader('กราฟข้อมูลหลังจากตัดค่าออก')
                 plot_original_data(filtered_data, original_nan_indexes=original_nan_indexes)
 
-                # เติมค่าด้วย RandomForest โดยใช้ข้อมูลก่อนหน้าไม่เกิน 672 ค่า
-                filled_data = fill_missing_values_with_limited_history(filtered_data)
+                # เติมค่าด้วย RandomForest โดยใช้ข้อมูลจริงสูงสุด 2688 ค่า
+                filled_data = fill_missing_values_with_real_only(filtered_data)
 
                 # คำนวณความแม่นยำระหว่างค่าจริงที่ถูกตัดออกกับค่าที่โมเดลเติมกลับ
                 st.subheader('ผลการคำนวณความแม่นยำ')
@@ -188,6 +188,7 @@ if uploaded_file is not None:
                 st.write(filled_data[['wl_up']])
             else:
                 st.error("ไม่พบข้อมูลในช่วงวันที่ที่เลือก กรุณาเลือกวันที่ใหม่")
+
 
 
 
