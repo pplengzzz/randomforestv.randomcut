@@ -137,16 +137,18 @@ if uploaded_file is not None:
     st.subheader('กราฟตัวอย่างข้อมูลหลังจากกรองค่า')
     plot_original_data(filtered_data)
 
-    # ให้ผู้ใช้เลือกช่วงวันที่ที่ต้องการตัดข้อมูล
-    st.subheader("เลือกช่วงวันที่ที่ต้องการตัดข้อมูล")
+    # ให้ผู้ใช้เลือกช่วงวันที่และเวลาที่ต้องการตัดข้อมูล
+    st.subheader("เลือกช่วงวันที่และเวลาที่ต้องการตัดข้อมูล")
     start_date = st.date_input("เลือกวันเริ่มต้น", pd.to_datetime(filtered_data.index.min()).date())
+    start_time = st.time_input("เลือกเวลาเริ่มต้น", value=pd.to_datetime(filtered_data.index.min()).time())
     end_date = st.date_input("เลือกวันสิ้นสุด", pd.to_datetime(filtered_data.index.max()).date())
+    end_time = st.time_input("เลือกเวลาสิ้นสุด", value=pd.to_datetime(filtered_data.index.max()).time())
 
     # รวมวันและเวลาที่เลือกเข้าด้วยกันเป็นช่วงเวลา
-    start_datetime = pd.to_datetime(start_date)
-    end_datetime = pd.to_datetime(end_date) + pd.DateOffset(days=1) - pd.Timedelta(seconds=1)  # ให้ครอบคลุมทั้งวันสิ้นสุด
+    start_datetime = pd.to_datetime(f"{start_date} {start_time}")
+    end_datetime = pd.to_datetime(f"{end_date} {end_time}")
 
-    # ตรวจสอบว่ามีข้อมูลในช่วงวันที่ที่เลือกหรือไม่
+    # ตรวจสอบว่ามีข้อมูลในช่วงวันที่และเวลาที่เลือกหรือไม่
     if not filtered_data.index.isin(pd.date_range(start=start_datetime, end=end_datetime)).any():
         st.error("ไม่มีข้อมูลในช่วงวันที่ที่เลือก กรุณาเลือกช่วงวันที่ที่มีข้อมูล")
     else:
