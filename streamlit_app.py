@@ -114,36 +114,42 @@ if uploaded_file is not None:
     start_datetime = pd.to_datetime(start_date)
     end_datetime = pd.to_datetime(end_date) + pd.DateOffset(days=1) - pd.Timedelta(seconds=1)  # ให้ครอบคลุมทั้งวันสิ้นสุด
 
-    # ตรวจสอบว่าเวลาที่เลือกอยู่ในช่วงของข้อมูลจริงหรือไม่
-    if start_datetime < filtered_data.index.min() or end_datetime > filtered_data.index.max():
-        st.error("ช่วงวันที่ที่เลือกอยู่เกินขอบเขตของข้อมูลจริง กรุณาเลือกใหม่")
+    # ตรวจสอบว่ามีข้อมูลในช่วงวันที่ที่เลือกหรือไม่
+    if not filtered_data.index.isin(pd.date_range(start=start_datetime, end=end_datetime)).any():
+        st.error("ไม่มีข้อมูลในช่วงวันที่ที่เลือก กรุณาเลือกช่วงวันที่ที่มีข้อมูล")
     else:
         if st.button("ตัดข้อมูล"):
             # ตัดข้อมูลตามช่วงวันที่ที่ผู้ใช้เลือก
             original_data = filtered_data.copy()
-            filtered_data.loc[start_datetime:end_datetime, 'wl_up'] = np.nan
 
-            # เก็บตำแหน่ง NaN ก่อนเติมค่า
-            original_nan_indexes = filtered_data[filtered_data['wl_up'].isna()].index
+            # ตรวจสอบว่ามีข้อมูลในช่วงวันที่หรือไม่
+            date_mask = (filtered_data.index >= start_datetime) & (filtered_data.index <= end_datetime)
+            if date_mask.any():
+                filtered_data.loc[date_mask, 'wl_up'] = np.nan
 
-            # แสดงกราฟข้อมูลที่ถูกตัด
-            st.subheader('กราฟข้อมูลหลังจากตัดค่าออก')
-            plot_data(filtered_data, original_nan_indexes)
+                # เก็บตำแหน่ง NaN ก่อนเติมค่า
+                original_nan_indexes = filtered_data[filtered_data['wl_up'].isna()].index
 
-            # เติมค่าด้วย RandomForest
-            filled_data = fill_missing_values(filtered_data)
+                # แสดงกราฟข้อมูลที่ถูกตัด
+                st.subheader('กราฟข้อมูลหลังจากตัดค่าออก')
+                plot_data(filtered_data, original_nan_indexes)
 
-            # คำนวณความแม่นยำระหว่างค่าจริงที่ถูกตัดออกกับค่าที่โมเดลเติมกลับ
-            st.subheader('ผลการคำนวณความแม่นยำ')
-            calculate_accuracy(filled_data, original_data, original_nan_indexes)
+                # เติมค่าด้วย RandomForest
+                filled_data = fill_missing_values(filtered_data)
 
-            # แสดงกราฟข้อมูลที่เติมค่าด้วยโมเดล RandomForest
-            st.subheader('กราฟผลลัพธ์การเติมค่า')
-            plot_data(filled_data, original_nan_indexes)
+                # คำนวณความแม่นยำระหว่างค่าจริงที่ถูกตัดออกกับค่าที่โมเดลเติมกลับ
+                st.subheader('ผลการคำนวณความแม่นยำ')
+                calculate_accuracy(filled_data, original_data, original_nan_indexes)
 
-            # แสดงผลลัพธ์การเติมค่าเป็นตาราง
-            st.subheader('ตารางข้อมูลที่เติมค่า (datetime, wl_up)')
-            st.write(filled_data[['wl_up']])
+                # แสดงกราฟข้อมูลที่เติมค่าด้วยโมเดล RandomForest
+                st.subheader('กราฟผลลัพธ์การเติมค่า')
+                plot_data(filled_data, original_nan_indexes)
+
+                # แสดงผลลัพธ์การเติมค่าเป็นตาราง
+                st.subheader('ตารางข้อมูลที่เติมค่า (datetime, wl_up)')
+                st.write(filled_data[['wl_up']])
+            else:
+                st.error("ไม่พบข้อมูลในช่วงวันที่ที่เลือก กรุณาเลือกวันที่ใหม่")
 
 
 
