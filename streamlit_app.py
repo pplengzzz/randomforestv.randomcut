@@ -61,7 +61,7 @@ def plot_filled_data(original_data, filled_data, original_nan_indexes):
     )
     st.plotly_chart(fig)
 
-# ฟังก์ชันสำหรับการเติมค่าด้วย RandomForestRegressor แบบใช้ข้อมูลก่อนหน้าแค่ 1344 ค่า
+# ฟังก์ชันสำหรับการเติมค่าด้วย RandomForestRegressor แบบใช้ข้อมูลก่อนหน้าแค่ 2688 ค่า
 def fill_missing_values_with_limited_history(full_data):
     filled_data = full_data.copy()
 
@@ -70,8 +70,8 @@ def fill_missing_values_with_limited_history(full_data):
 
     # เติมค่าที่หายไปทีละค่า
     for idx in nan_indexes:
-        # หาค่าก่อนหน้าสูงสุด 1344 ค่าหรือเท่าที่มีอยู่
-        window_start = max(0, filled_data.index.get_loc(idx) - 1344)
+        # หาค่าก่อนหน้าสูงสุด 2688 ค่าหรือเท่าที่มีอยู่
+        window_start = max(0, filled_data.index.get_loc(idx) - 2688)
         train_data = filled_data.iloc[window_start:filled_data.index.get_loc(idx)].dropna(subset=['wl_up', 'hour', 'day_of_week', 'minute', 'lag_1', 'lag_2'])
 
         # ใช้ข้อมูลที่มีอยู่แล้วในการฝึกโมเดล
@@ -94,6 +94,7 @@ def fill_missing_values_with_limited_history(full_data):
             filled_data['lag_2'] = filled_data['wl_up'].shift(2)
 
     return filled_data
+
 
 # ฟังก์ชันคำนวณความแม่นยำ
 def calculate_accuracy(filled_data, original_data, original_nan_indexes):
