@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+import plotly.express as px
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
@@ -11,58 +11,53 @@ st.set_page_config(page_title='การพยากรณ์ด้วย Random
 # ชื่อของแอป
 st.title("และการพยากรณ์ด้วย RandomForest")
 
-# ฟังก์ชันสำหรับการแสดงกราฟข้อมูลหลังตัดค่า (คงเดิม)
+# ฟังก์ชันสำหรับการแสดงกราฟข้อมูลหลังตัดค่า (ใช้ plotly)
 def plot_original_data(data, original_nan_indexes=None):
     data = data.sort_index()  # เรียงลำดับ datetime ก่อนการ plot
 
-    plt.figure(figsize=(18, 10))
-    
-    # Plot ค่าจริง (สีน้ำเงิน)
-    plt.plot(data.index, data['wl_up'], label='Actual Values', color='blue', alpha=0.6)
+    fig = px.line(data, x=data.index, y='wl_up', title='Water Level Over Time (After Cutting)', labels={'x': 'Date', 'wl_up': 'Water Level (wl_up)'})
     
     # Plot ค่าที่ถูกตัดออก (สีส้ม)
     if original_nan_indexes is not None:
-        plt.plot(original_nan_indexes, data.loc[original_nan_indexes, 'wl_up'], 
-                 color='orange', label='Missing Values (Cut)', linestyle='', marker='o')
+        fig.add_scatter(x=original_nan_indexes, y=data.loc[original_nan_indexes, 'wl_up'], mode='markers', name='Missing Values (Cut)', marker=dict(color='orange'))
 
     # ปรับแต่งกราฟ
-    plt.title('Water Level Over Time (After Cutting)', fontsize=18)
-    plt.xlabel('Date', fontsize=16)
-    plt.ylabel('Water Level (wl_up)', fontsize=16)
-    plt.grid(True, linestyle='--', alpha=0.7)
-    plt.xticks(rotation=45, fontsize=14)
-    plt.yticks(fontsize=14)
-    plt.legend(fontsize=14)
-    st.pyplot(plt)
+    fig.update_layout(
+        xaxis_title="Date",
+        yaxis_title="Water Level (wl_up)",
+        title_font=dict(size=18),
+        xaxis=dict(showgrid=True),
+        yaxis=dict(showgrid=True),
+        hovermode="x",
+        legend=dict(font=dict(size=14)),
+    )
+    st.plotly_chart(fig)
 
-# ฟังก์ชันสำหรับการแสดงกราฟที่ถูกเติมค่าแล้ว (เปลี่ยนเฉพาะส่วนที่เติมค่า)
+# ฟังก์ชันสำหรับการแสดงกราฟที่ถูกเติมค่าแล้ว (ใช้ plotly)
 def plot_filled_data(original_data, filled_data, original_nan_indexes):
     filled_data = filled_data.sort_index()  # เรียงลำดับ datetime ก่อนการ plot
 
-    plt.figure(figsize=(18, 10))
-    
-    # Plot ค่าจริง (สีน้ำเงิน)
-    plt.plot(original_data.index, original_data['wl_up'], label='Actual Values', color='blue', alpha=0.6)
-    
+    fig = px.line(original_data, x=original_data.index, y='wl_up', title='Water Level Over Time (After Filling)', labels={'x': 'Date', 'wl_up': 'Water Level (wl_up)'})
+
     # Plot ค่าที่ถูกตัดออก (สีส้ม)
     if original_nan_indexes is not None:
-        plt.plot(original_nan_indexes, original_data.loc[original_nan_indexes, 'wl_up'], 
-                 label='Cut Values', color='orange', linestyle='', marker='o')
+        fig.add_scatter(x=original_nan_indexes, y=original_data.loc[original_nan_indexes, 'wl_up'], mode='markers', name='Cut Values', marker=dict(color='orange'))
 
     # Plot ค่าที่เติมด้วยโมเดล (สีเขียวและเป็นเส้นธรรมดา)
     if original_nan_indexes is not None:
-        plt.plot(filled_data.loc[original_nan_indexes].index, filled_data.loc[original_nan_indexes, 'wl_up'], 
-                 label='Filled Values (Model)', color='green', linestyle='-', linewidth=2, alpha=0.9)
+        fig.add_scatter(x=filled_data.loc[original_nan_indexes].index, y=filled_data.loc[original_nan_indexes, 'wl_up'], mode='lines', name='Filled Values (Model)', line=dict(color='green'))
 
     # ปรับแต่งกราฟ
-    plt.title('Water Level Over Time (After Filling)', fontsize=18)
-    plt.xlabel('Date', fontsize=16)
-    plt.ylabel('Water Level (wl_up)', fontsize=16)
-    plt.grid(True, linestyle='--', alpha=0.7)
-    plt.xticks(rotation=45, fontsize=14)
-    plt.yticks(fontsize=14)
-    plt.legend(fontsize=14)
-    st.pyplot(plt)
+    fig.update_layout(
+        xaxis_title="Date",
+        yaxis_title="Water Level (wl_up)",
+        title_font=dict(size=18),
+        xaxis=dict(showgrid=True),
+        yaxis=dict(showgrid=True),
+        hovermode="x",
+        legend=dict(font=dict(size=14)),
+    )
+    st.plotly_chart(fig)
 
 # ฟังก์ชันสำหรับการเติมค่าด้วย RandomForestRegressor
 def fill_missing_values(full_data):
@@ -185,6 +180,9 @@ if uploaded_file is not None:
                 st.write(filled_data[['wl_up']])
             else:
                 st.error("ไม่พบข้อมูลในช่วงวันที่ที่เลือก กรุณาเลือกวันที่ใหม่")
+
+
+
 
 
 
