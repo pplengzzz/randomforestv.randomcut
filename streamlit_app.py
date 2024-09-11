@@ -61,8 +61,8 @@ def plot_filled_data(original_data, filled_data, original_nan_indexes):
     )
     st.plotly_chart(fig)
 
-# ฟังก์ชันสำหรับการเติมค่าด้วย RandomForestRegressor แบบใช้ค่าที่เติมแล้วมาฝึกต่อ
-def fill_missing_values_sequentially_with_filled(full_data):
+# ฟังก์ชันสำหรับการเติมค่าด้วย RandomForestRegressor แบบใช้ข้อมูลก่อนหน้าแค่ 672 ค่า
+def fill_missing_values_with_limited_history(full_data):
     filled_data = full_data.copy()
 
     # ค้นหาตำแหน่งที่มีค่า NaN
@@ -70,9 +70,9 @@ def fill_missing_values_sequentially_with_filled(full_data):
 
     # เติมค่าที่หายไปทีละค่า
     for idx in nan_indexes:
-        # เลือกข้อมูลที่มีค่าอยู่แล้ว (ไม่ใช่ NaN) ก่อนหน้าค่า NaN ที่กำลังจะเติม
-        # ใช้ทั้งค่าจริงและค่าที่เติมแล้วในการฝึก
-        train_data = filled_data.loc[:idx].dropna(subset=['wl_up', 'hour', 'day_of_week', 'minute', 'lag_1', 'lag_2'])
+        # หาค่าก่อนหน้าสูงสุด 672 ค่าหรือเท่าที่มีอยู่
+        window_start = max(0, filled_data.index.get_loc(idx) - 672)
+        train_data = filled_data.iloc[window_start:filled_data.index.get_loc(idx)].dropna(subset=['wl_up', 'hour', 'day_of_week', 'minute', 'lag_1', 'lag_2'])
 
         # ใช้ข้อมูลที่มีอยู่แล้วในการฝึกโมเดล
         if len(train_data) > 1:  # ตรวจสอบว่ามีข้อมูลเพียงพอสำหรับการฝึก
@@ -171,8 +171,8 @@ if uploaded_file is not None:
                 st.subheader('กราฟข้อมูลหลังจากตัดค่าออก')
                 plot_original_data(filtered_data, original_nan_indexes=original_nan_indexes)
 
-                # เติมค่าด้วย RandomForest แบบทีละค่า
-                filled_data = fill_missing_values_sequentially_with_filled(filtered_data)
+                # เติมค่าด้วย RandomForest โดยใช้ข้อมูลก่อนหน้าไม่เกิน 672 ค่า
+                filled_data = fill_missing_values_with_limited_history(filtered_data)
 
                 # คำนวณความแม่นยำระหว่างค่าจริงที่ถูกตัดออกกับค่าที่โมเดลเติมกลับ
                 st.subheader('ผลการคำนวณความแม่นยำ')
