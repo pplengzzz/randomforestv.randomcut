@@ -140,9 +140,15 @@ if uploaded_file is not None:
         # ให้ผู้ใช้เลือกวันและเวลาที่ต้องการตัดข้อมูล
         st.subheader("เลือกวันและเวลาที่ต้องการตัดข้อมูล")
 
-        # รวมการเลือกวันและเวลาให้เป็นบล็อคเดียวกัน
-        start_datetime = st.datetime_input("เลือกวันและเวลาเริ่มต้น", pd.to_datetime(data_selected.index.min()))
-        end_datetime = st.datetime_input("เลือกวันและเวลาสิ้นสุด", pd.to_datetime(data_selected.index.max()))
+        # รวมการเลือกวันและเวลาให้เป็นบล็อคเดียว
+        start_date = st.date_input("เลือกวันที่เริ่มต้น", pd.to_datetime(data_selected.index.min()).date())
+        start_time = st.time_input("เลือกเวลาเริ่มต้น", pd.to_datetime(data_selected.index.min()).time())
+        end_date = st.date_input("เลือกวันที่สิ้นสุด", pd.to_datetime(data_selected.index.max()).date())
+        end_time = st.time_input("เลือกเวลาสิ้นสุด", pd.to_datetime(data_selected.index.max()).time())
+
+        # รวมวันและเวลาที่เลือกเข้าด้วยกันเป็น datetime
+        start_datetime = pd.to_datetime(f"{start_date} {start_time}")
+        end_datetime = pd.to_datetime(f"{end_date} {end_time}")
 
         if st.button("ตัดข้อมูล"):
             # ตัดข้อมูลตามวันที่และเวลาที่ผู้ใช้เลือก
