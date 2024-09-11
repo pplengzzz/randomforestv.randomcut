@@ -12,15 +12,24 @@ st.set_page_config(page_title='การพยากรณ์ด้วย Random
 st.title("และการพยากรณ์ด้วย RandomForest")
 
 # ฟังก์ชันสำหรับการแสดงกราฟ
-def plot_data(data, original_nan_indexes=None):
+def plot_data(data, original_data=None, filled_data=None, original_nan_indexes=None):
     data = data.sort_index()  # เรียงลำดับ datetime ก่อนการ plot
 
     plt.figure(figsize=(18, 10))
-    plt.plot(data.index, data['wl_up'], label='Water Level', color='blue', alpha=0.6)
-
+    
+    # Plot ค่าจริง (สีน้ำเงิน)
+    if original_data is not None:
+        plt.plot(original_data.index, original_data['wl_up'], label='Actual Values', color='blue', alpha=0.6)
+    
+    # Plot ค่าที่ถูกตัดออก (สีส้ม)
     if original_nan_indexes is not None:
         plt.plot(original_nan_indexes, data.loc[original_nan_indexes, 'wl_up'], 
-                 color='orange', alpha=0.6, label='Missing Values (Cut)', linestyle='')
+                 color='orange', label='Missing Values (Cut)', linestyle='--', alpha=0.8)
+    
+    # Plot ค่าที่เติมด้วยโมเดล (สีเขียว)
+    if filled_data is not None and original_nan_indexes is not None:
+        plt.plot(filled_data.loc[original_nan_indexes].index, filled_data.loc[original_nan_indexes, 'wl_up'], 
+                 label='Filled Values (Model)', color='green', linestyle=':', alpha=0.9)
 
     # ปรับแต่งกราฟ
     plt.title('Water Level Over Time (Filtered Data)', fontsize=18)
@@ -29,6 +38,7 @@ def plot_data(data, original_nan_indexes=None):
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.xticks(rotation=45, fontsize=14)
     plt.yticks(fontsize=14)
+    plt.legend(fontsize=14)
     st.pyplot(plt)
 
 # ฟังก์ชันสำหรับการเติมค่าด้วย RandomForestRegressor
@@ -105,7 +115,7 @@ if uploaded_file is not None:
 
     # แสดงตัวอย่างข้อมูลหลังกรอง
     st.subheader('กราฟตัวอย่างข้อมูลหลังจากกรองค่า')
-    plot_data(filtered_data)
+    plot_data(filtered_data, original_data=filtered_data)
 
     # ให้ผู้ใช้เลือกช่วงวันที่ที่ต้องการตัดข้อมูล
     st.subheader("เลือกช่วงวันที่ที่ต้องการตัดข้อมูล")
@@ -134,7 +144,7 @@ if uploaded_file is not None:
 
                 # แสดงกราฟข้อมูลที่ถูกตัด
                 st.subheader('กราฟข้อมูลหลังจากตัดค่าออก')
-                plot_data(filtered_data, original_nan_indexes)
+                plot_data(filtered_data, original_data=original_data, original_nan_indexes=original_nan_indexes)
 
                 # เติมค่าด้วย RandomForest
                 filled_data = fill_missing_values(filtered_data)
@@ -145,7 +155,7 @@ if uploaded_file is not None:
 
                 # แสดงกราฟข้อมูลที่เติมค่าด้วยโมเดล RandomForest
                 st.subheader('กราฟผลลัพธ์การเติมค่า')
-                plot_data(filled_data, original_nan_indexes)
+                plot_data(filtered_data, original_data=original_data, filled_data=filled_data, original_nan_indexes=original_nan_indexes)
 
                 # แสดงผลลัพธ์การเติมค่าเป็นตาราง
                 st.subheader('ตารางข้อมูลที่เติมค่า (datetime, wl_up)')
