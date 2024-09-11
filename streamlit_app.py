@@ -83,18 +83,6 @@ def fill_missing_values(data, original_nan_indexes):
     return filled_data
 
 # ฟังก์ชันสำหรับการ plot ข้อมูล
-def plot_data(data, title="Water Level Over Time"):
-    data = data.sort_index()  # เรียงลำดับ datetime ก่อนการ plot
-    plt.figure(figsize=(18, 10))
-    plt.plot(data.index, data['wl_up'], label='Water Level', color='blue', alpha=0.6)
-    plt.title(title, fontsize=18)
-    plt.xlabel('Date', fontsize=16)
-    plt.ylabel('Water Level (wl_up)', fontsize=16)
-    plt.grid(True, linestyle='--', alpha=0.7)
-    plt.xticks(rotation=45, fontsize=14)
-    plt.yticks(fontsize=14)
-    st.pyplot(plt)
-
 def plot_filled_data(filled_data, original_data, original_nan_indexes):
     filled_data = filled_data.sort_index()  # เรียงลำดับ datetime ก่อนการ plot
     original_data = original_data.sort_index()  # เรียงลำดับ datetime ก่อนการ plot
@@ -138,7 +126,16 @@ if uploaded_file is not None:
 
         # แสดงกราฟข้อมูลที่เลือก
         st.subheader("กราฟข้อมูลในช่วงที่เลือก")
-        plot_data(data_selected, title="Water Level in Selected Date Range")
+        data_selected = data_selected.sort_index()  # เรียงลำดับก่อนแสดง
+        plt.figure(figsize=(18, 10))
+        plt.plot(data_selected.index, data_selected['wl_up'], label='Water Level', color='blue', alpha=0.6)
+        plt.title('Water Level in Selected Date Range', fontsize=18)
+        plt.xlabel('Date', fontsize=16)
+        plt.ylabel('Water Level (wl_up)', fontsize=16)
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.xticks(rotation=45, fontsize=14)
+        plt.yticks(fontsize=14)
+        st.pyplot(plt)
 
         # ให้ผู้ใช้เลือกวันและเวลาที่ต้องการตัดข้อมูล
         st.subheader("เลือกวันและเวลาที่ต้องการตัดข้อมูล")
