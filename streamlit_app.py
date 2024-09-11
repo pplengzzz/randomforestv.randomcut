@@ -35,12 +35,14 @@ def plot_data(data, original_nan_indexes=None):
 def fill_missing_values(full_data):
     filled_data = full_data.copy()
 
+    # เพิ่มคอลัมน์ 'week' ให้กับ full_data (สร้างจาก datetime index)
+    filled_data['week'] = filled_data.index.to_period("W")
+
     # เติมค่าในแต่ละอาทิตย์ที่มีข้อมูลขาดหาย
-    filled_data['week'] = full_data.index.to_period("W")
-    missing_weeks = full_data[full_data['wl_up'].isna()]['week'].unique()
+    missing_weeks = filled_data[filled_data['wl_up'].isna()]['week'].unique()
 
     for week in missing_weeks:
-        week_data = full_data[full_data['week'] == week]
+        week_data = filled_data[filled_data['week'] == week]
         missing_idx = week_data[week_data['wl_up'].isna()].index
         train_data = week_data.dropna(subset=['wl_up', 'hour', 'day_of_week', 'minute', 'lag_1', 'lag_2'])
 
