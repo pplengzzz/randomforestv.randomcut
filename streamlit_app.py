@@ -22,6 +22,9 @@ def process_data(file_path):
     data['datetime'] = data['datetime'].dt.tz_localize(None)  # ทำให้เป็น tz-naive (ไม่มี timezone)
     data.set_index('datetime', inplace=True)
 
+    # ตัดข้อมูลที่มีค่า wl_up น้อยกว่า 100 ออก
+    data = data[data['wl_up'] >= 100]
+
     # เพิ่มฟีเจอร์ด้านเวลา
     data['hour'] = data.index.hour
     data['day_of_week'] = data.index.dayofweek
@@ -115,6 +118,10 @@ if uploaded_file is not None:
     # อ่านและประมวลผลข้อมูลจากไฟล์
     full_data = process_data(uploaded_file)
 
+    # แสดงตัวอย่างข้อมูลหลังจากตัดข้อมูลน้อยกว่า 100 ออก
+    st.subheader("ตัวอย่างข้อมูลหลังจากตัดข้อมูลที่น้อยกว่า 100 ออก")
+    st.write(full_data.head())
+
     # ให้ผู้ใช้เลือกช่วงวันที่ที่สนใจ
     st.subheader("เลือกช่วงเวลา")
     start_date = st.date_input("เลือกวันเริ่มต้น", pd.to_datetime(full_data.index.min()).date())
@@ -172,6 +179,7 @@ if uploaded_file is not None:
                 st.write(selected_range_data[['wl_up']])
         else:
             st.error("กรุณาเลือกช่วงวันที่ที่ถูกต้อง (วันเริ่มต้นต้องน้อยกว่าหรือเท่ากับวันสิ้นสุด)")
+
 
 
 
