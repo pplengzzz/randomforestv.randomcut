@@ -79,6 +79,10 @@ if uploaded_file is not None:
     # โหลดข้อมูลจริง
     data = pd.read_csv(uploaded_file)
     data['datetime'] = pd.to_datetime(data['datetime'])
+    
+    # ทำให้ datetime เป็น tz-naive (ไม่มี timezone)
+    data['datetime'] = data['datetime'].dt.tz_localize(None)
+    
     data.set_index('datetime', inplace=True)
 
     # เพิ่มฟีเจอร์ด้านเวลา
