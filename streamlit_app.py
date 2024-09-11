@@ -61,34 +61,37 @@ def plot_filled_data(original_data, filled_data, original_nan_indexes):
     )
     st.plotly_chart(fig)
 
-# ฟังก์ชันสำหรับการเติมค่าด้วย RandomForestRegressor
-def fill_missing_values(full_data):
+# ฟังก์ชันสำหรับการเติมค่าด้วย RandomForestRegressor แบบใช้ค่าที่เติมแล้วมาฝึกต่อ
+def fill_missing_values_sequentially_with_filled(full_data):
     filled_data = full_data.copy()
 
-    # เพิ่มคอลัมน์ 'week' ให้กับ full_data (สร้างจาก datetime index)
-    filled_data['week'] = filled_data.index.to_period("W")
+    # ค้นหาตำแหน่งที่มีค่า NaN
+    nan_indexes = filled_data[filled_data['wl_up'].isna()].index
 
-    # เติมค่าในแต่ละอาทิตย์ที่มีข้อมูลขาดหาย
-    missing_weeks = filled_data[filled_data['wl_up'].isna()]['week'].unique()
+    # เติมค่าที่หายไปทีละค่า
+    for idx in nan_indexes:
+        # เลือกข้อมูลที่มีค่าอยู่แล้ว (ไม่ใช่ NaN) ก่อนหน้าค่า NaN ที่กำลังจะเติม
+        # ใช้ทั้งค่าจริงและค่าที่เติมแล้วในการฝึก
+        train_data = filled_data.loc[:idx].dropna(subset=['wl_up', 'hour', 'day_of_week', 'minute', 'lag_1', 'lag_2'])
 
-    for week in missing_weeks:
-        week_data = filled_data[filled_data['week'] == week]
-        missing_idx = week_data[week_data['wl_up'].isna()].index
-        train_data = week_data.dropna(subset=['wl_up', 'hour', 'day_of_week', 'minute', 'lag_1', 'lag_2'])
-
-        if len(train_data) > 1:
+        # ใช้ข้อมูลที่มีอยู่แล้วในการฝึกโมเดล
+        if len(train_data) > 1:  # ตรวจสอบว่ามีข้อมูลเพียงพอสำหรับการฝึก
             X_train = train_data[['hour', 'day_of_week', 'minute', 'lag_1', 'lag_2']]
             y_train = train_data['wl_up']
 
             model = RandomForestRegressor(n_estimators=100, random_state=42)
             model.fit(X_train, y_train)
 
-            X_missing = week_data.loc[missing_idx, ['hour', 'day_of_week', 'minute', 'lag_1', 'lag_2']]
-            X_missing_clean = X_missing.dropna()
+            # เลือกข้อมูลที่ NaN เพียงแถวเดียวสำหรับการทำนาย
+            X_missing = filled_data.loc[[idx], ['hour', 'day_of_week', 'minute', 'lag_1', 'lag_2']]
+            
+            # ทำนายค่า NaN
+            filled_value = model.predict(X_missing)
+            filled_data.loc[idx, 'wl_up'] = filled_value  # เติมค่าในตำแหน่งที่ NaN
 
-            if not X_missing_clean.empty:
-                filled_values = model.predict(X_missing_clean)
-                filled_data.loc[X_missing_clean.index, 'wl_up'] = filled_values
+            # อัปเดตค่าที่เติมให้กลายเป็นส่วนหนึ่งของข้อมูลที่ถูกใช้ในการฝึกโมเดล
+            filled_data['lag_1'] = filled_data['wl_up'].shift(1)
+            filled_data['lag_2'] = filled_data['wl_up'].shift(2)
 
     return filled_data
 
@@ -168,8 +171,8 @@ if uploaded_file is not None:
                 st.subheader('กราฟข้อมูลหลังจากตัดค่าออก')
                 plot_original_data(filtered_data, original_nan_indexes=original_nan_indexes)
 
-                # เติมค่าด้วย RandomForest
-                filled_data = fill_missing_values(filtered_data)
+                # เติมค่าด้วย RandomForest แบบทีละค่า
+                filled_data = fill_missing_values_sequentially_with_filled(filtered_data)
 
                 # คำนวณความแม่นยำระหว่างค่าจริงที่ถูกตัดออกกับค่าที่โมเดลเติมกลับ
                 st.subheader('ผลการคำนวณความแม่นยำ')
