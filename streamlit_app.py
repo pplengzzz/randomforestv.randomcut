@@ -90,15 +90,15 @@ def plot_filled_data(filled_data, original_data, original_nan_indexes):
     plt.figure(figsize=(18, 10))
 
     # สีน้ำเงินสำหรับค่าจริงที่ไม่ได้ถูกตัด
-    plt.plot(filled_data.index, original_data['wl_up'], label='Actual Values', color='blue', alpha=0.6)
+    plt.plot(original_data.index, original_data['wl_up'], label='Actual Values', color='blue', alpha=0.6)
 
-    # สีฟ้าอ่อนสำหรับค่าที่ถูกตัดออก แสดงเฉพาะช่วงที่ถูกตัด
+    # สีส้มสำหรับค่าที่ถูกตัดออก
     plt.plot(original_nan_indexes, original_data.loc[original_nan_indexes, 'wl_up'], 
-             color='lightblue', alpha=0.6, label='Missing Values (Cut)', linestyle='')
+             color='orange', alpha=0.6, label='Missing Values (Cut)', linestyle='')
 
-    # สีแดงสำหรับค่าที่ถูกเติมหลังจากถูกตัด
+    # สีเขียวสำหรับค่าที่ถูกเติมหลังจากถูกตัด
     plt.plot(filled_data.loc[original_nan_indexes].index, 
-             filled_data.loc[original_nan_indexes, 'wl_up'], color='red', alpha=0.6, label='Filled Values', linestyle='')
+             filled_data.loc[original_nan_indexes, 'wl_up'], color='green', alpha=0.6, label='Filled Values', linestyle='')
 
     # ปรับแต่งสไตล์กราฟ
     plt.title('Water Level Over Time (Actual, Cut, and Filled Data)', fontsize=18)
@@ -165,7 +165,9 @@ if uploaded_file is not None:
 
             # แสดงผลลัพธ์การเติมค่าเป็นตาราง
             st.subheader('ตารางข้อมูลที่เติมค่า (datetime, wl_up)')
-            st.write(filled_data[['wl_up']])
+            # แสดงเฉพาะข้อมูลในช่วงเวลาที่เลือกในขั้นตอนที่ 1
+            selected_range_data = filled_data.loc[start_date:end_date]
+            st.write(selected_range_data[['wl_up']])
     else:
         st.error("กรุณาเลือกช่วงวันที่ที่ถูกต้อง (วันเริ่มต้นต้องน้อยกว่าหรือเท่ากับวันสิ้นสุด)")
 
