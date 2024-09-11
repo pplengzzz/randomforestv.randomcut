@@ -21,7 +21,7 @@ def plot_original_data(data, original_nan_indexes=None):
     if original_nan_indexes is not None:
         fig.add_scatter(x=original_nan_indexes, y=data.loc[original_nan_indexes, 'wl_up'], mode='markers', name='Missing Values (Cut)', marker=dict(color='orange'))
 
-    # ปรับแต่งกราฟ
+    # ปรับแต่งกราฟและซ่อน legend สำหรับกราฟแรก
     fig.update_layout(
         xaxis_title="Date",
         yaxis_title="Water Level (wl_up)",
@@ -29,7 +29,7 @@ def plot_original_data(data, original_nan_indexes=None):
         xaxis=dict(showgrid=True),
         yaxis=dict(showgrid=True),
         hovermode="x",
-        legend=dict(font=dict(size=14)),
+        legend=dict(itemsizing='constant', title_text=' ', orientation='v', xanchor='center', yanchor='top'),
     )
     st.plotly_chart(fig)
 
@@ -43,11 +43,13 @@ def plot_filled_data(original_data, filled_data, original_nan_indexes):
     if original_nan_indexes is not None:
         fig.add_scatter(x=original_nan_indexes, y=original_data.loc[original_nan_indexes, 'wl_up'], mode='markers', name='Cut Values', marker=dict(color='orange'))
 
-    # Plot ค่าที่เติมด้วยโมเดล (สีเขียวและเป็นเส้นธรรมดา)
+    # Plot ค่าที่เติมด้วยโมเดล (สีเขียว)
     if original_nan_indexes is not None:
         fig.add_scatter(x=filled_data.loc[original_nan_indexes].index, y=filled_data.loc[original_nan_indexes, 'wl_up'], mode='lines', name='Filled Values (Model)', line=dict(color='green'))
 
-    # ปรับแต่งกราฟ
+    # ปรับแต่งกราฟและลดความเข้มของเส้นจริง (สีน้ำเงิน) ให้โปร่งใสขึ้น
+    fig.update_traces(line=dict(color='blue', width=2, dash='solid'), selector=dict(name='Actual Values'))
+    fig.update_traces(opacity=0.6, selector=dict(name='Actual Values'))  # เพิ่มความโปร่งใสให้เส้นจริง
     fig.update_layout(
         xaxis_title="Date",
         yaxis_title="Water Level (wl_up)",
@@ -55,7 +57,7 @@ def plot_filled_data(original_data, filled_data, original_nan_indexes):
         xaxis=dict(showgrid=True),
         yaxis=dict(showgrid=True),
         hovermode="x",
-        legend=dict(font=dict(size=14)),
+        legend=dict(itemsizing='constant', orientation='v'),
     )
     st.plotly_chart(fig)
 
@@ -180,6 +182,7 @@ if uploaded_file is not None:
                 st.write(filled_data[['wl_up']])
             else:
                 st.error("ไม่พบข้อมูลในช่วงวันที่ที่เลือก กรุณาเลือกวันที่ใหม่")
+
 
 
 
