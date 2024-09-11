@@ -44,6 +44,11 @@ def plot_filled_data(original_data, filled_data, original_nan_indexes):
     # Plot ค่าจริง (สีน้ำเงิน)
     plt.plot(original_data.index, original_data['wl_up'], label='Actual Values', color='blue', alpha=0.6)
     
+    # Plot ค่าที่ถูกตัดออก (สีส้ม)
+    if original_nan_indexes is not None:
+        plt.plot(original_nan_indexes, original_data.loc[original_nan_indexes, 'wl_up'], 
+                 label='Cut Values', color='orange', linestyle='', marker='o')
+
     # Plot ค่าที่เติมด้วยโมเดล (สีเขียวและเป็นเส้นธรรมดา)
     if original_nan_indexes is not None:
         plt.plot(filled_data.loc[original_nan_indexes].index, filled_data.loc[original_nan_indexes, 'wl_up'], 
