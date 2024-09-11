@@ -121,7 +121,7 @@ if uploaded_file is not None:
     end_date = st.date_input("เลือกวันสิ้นสุด", pd.to_datetime(full_data.index.max()).date())
 
     # กรองข้อมูลตามช่วงวันที่ที่เลือก
-    if start_date < end_date:
+    if start_date <= end_date:
         data_selected = full_data.loc[start_date:end_date]
 
         # แสดงกราฟข้อมูลที่เลือก
@@ -139,14 +139,10 @@ if uploaded_file is not None:
 
         # ให้ผู้ใช้เลือกวันและเวลาที่ต้องการตัดข้อมูล
         st.subheader("เลือกวันและเวลาที่ต้องการตัดข้อมูล")
-        start_datetime = st.date_input("เลือกวันที่เริ่มต้น", pd.to_datetime(data_selected.index.min()).date())
-        start_time = st.time_input("เลือกเวลาเริ่มต้น", pd.to_datetime(data_selected.index.min()).time())
-        end_datetime = st.date_input("เลือกวันที่สิ้นสุด", pd.to_datetime(data_selected.index.max()).date())
-        end_time = st.time_input("เลือกเวลาสิ้นสุด", pd.to_datetime(data_selected.index.max()).time())
 
-        # รวมวันและเวลาที่ผู้ใช้เลือกเข้าด้วยกัน
-        start_datetime = pd.to_datetime(f"{start_datetime} {start_time}")
-        end_datetime = pd.to_datetime(f"{end_datetime} {end_time}")
+        # รวมการเลือกวันและเวลาให้เป็นบล็อคเดียวกัน
+        start_datetime = st.datetime_input("เลือกวันและเวลาเริ่มต้น", pd.to_datetime(data_selected.index.min()))
+        end_datetime = st.datetime_input("เลือกวันและเวลาสิ้นสุด", pd.to_datetime(data_selected.index.max()))
 
         if st.button("ตัดข้อมูล"):
             # ตัดข้อมูลตามวันที่และเวลาที่ผู้ใช้เลือก
@@ -165,7 +161,7 @@ if uploaded_file is not None:
             st.subheader('ตารางข้อมูลที่เติมค่า (datetime, wl_up)')
             st.write(filled_data[['wl_up']])
     else:
-        st.error("กรุณาเลือกช่วงวันที่ที่ถูกต้อง (วันเริ่มต้นต้องน้อยกว่าวันสิ้นสุด)")
+        st.error("กรุณาเลือกช่วงวันที่ที่ถูกต้อง (วันเริ่มต้นต้องน้อยกว่าหรือเท่ากับวันสิ้นสุด)")
 
 
 
