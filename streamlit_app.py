@@ -105,43 +105,46 @@ if uploaded_file is not None:
     st.subheader('กราฟตัวอย่างข้อมูลหลังจากกรองค่า')
     plot_data(filtered_data)
 
-    # ให้ผู้ใช้เลือกช่วงวันที่และเวลาที่ต้องการตัดข้อมูล
-    st.subheader("เลือกช่วงวันที่และเวลาที่ต้องการตัดข้อมูล")
+    # ให้ผู้ใช้เลือกช่วงวันที่ที่ต้องการตัดข้อมูล
+    st.subheader("เลือกช่วงวันที่ที่ต้องการตัดข้อมูล")
     start_date = st.date_input("เลือกวันเริ่มต้น", pd.to_datetime(filtered_data.index.min()).date())
-    start_time = st.time_input("เลือกเวลาเริ่มต้น", pd.to_datetime(filtered_data.index.min()).time())
     end_date = st.date_input("เลือกวันสิ้นสุด", pd.to_datetime(filtered_data.index.max()).date())
-    end_time = st.time_input("เลือกเวลาสิ้นสุด", pd.to_datetime(filtered_data.index.max()).time())
 
-    # รวมวันและเวลาที่เลือกเข้าด้วยกันเป็น datetime
-    start_datetime = pd.to_datetime(f"{start_date} {start_time}")
-    end_datetime = pd.to_datetime(f"{end_date} {end_time}")
+    # รวมวันและเวลาที่เลือกเข้าด้วยกันเป็นช่วงเวลา
+    start_datetime = pd.to_datetime(start_date)
+    end_datetime = pd.to_datetime(end_date) + pd.DateOffset(days=1) - pd.Timedelta(seconds=1)  # ให้ครอบคลุมทั้งวันสิ้นสุด
 
-    if st.button("ตัดข้อมูล"):
-        # ตัดข้อมูลตามวันที่และเวลาที่ผู้ใช้เลือก
-        original_data = filtered_data.copy()
-        filtered_data.loc[start_datetime:end_datetime, 'wl_up'] = np.nan
+    # ตรวจสอบว่าเวลาที่เลือกอยู่ในช่วงของข้อมูลจริงหรือไม่
+    if start_datetime < filtered_data.index.min() or end_datetime > filtered_data.index.max():
+        st.error("ช่วงวันที่ที่เลือกอยู่เกินขอบเขตของข้อมูลจริง กรุณาเลือกใหม่")
+    else:
+        if st.button("ตัดข้อมูล"):
+            # ตัดข้อมูลตามช่วงวันที่ที่ผู้ใช้เลือก
+            original_data = filtered_data.copy()
+            filtered_data.loc[start_datetime:end_datetime, 'wl_up'] = np.nan
 
-        # เก็บตำแหน่ง NaN ก่อนเติมค่า
-        original_nan_indexes = filtered_data[filtered_data['wl_up'].isna()].index
+            # เก็บตำแหน่ง NaN ก่อนเติมค่า
+            original_nan_indexes = filtered_data[filtered_data['wl_up'].isna()].index
 
-        # แสดงกราฟข้อมูลที่ถูกตัด
-        st.subheader('กราฟข้อมูลหลังจากตัดค่าออก')
-        plot_data(filtered_data, original_nan_indexes)
+            # แสดงกราฟข้อมูลที่ถูกตัด
+            st.subheader('กราฟข้อมูลหลังจากตัดค่าออก')
+            plot_data(filtered_data, original_nan_indexes)
 
-        # เติมค่าด้วย RandomForest
-        filled_data = fill_missing_values(filtered_data)
+            # เติมค่าด้วย RandomForest
+            filled_data = fill_missing_values(filtered_data)
 
-        # คำนวณความแม่นยำระหว่างค่าจริงที่ถูกตัดออกกับค่าที่โมเดลเติมกลับ
-        st.subheader('ผลการคำนวณความแม่นยำ')
-        calculate_accuracy(filled_data, original_data, original_nan_indexes)
+            # คำนวณความแม่นยำระหว่างค่าจริงที่ถูกตัดออกกับค่าที่โมเดลเติมกลับ
+            st.subheader('ผลการคำนวณความแม่นยำ')
+            calculate_accuracy(filled_data, original_data, original_nan_indexes)
 
-        # แสดงกราฟข้อมูลที่เติมค่าด้วยโมเดล RandomForest
-        st.subheader('กราฟผลลัพธ์การเติมค่า')
-        plot_data(filled_data, original_nan_indexes)
+            # แสดงกราฟข้อมูลที่เติมค่าด้วยโมเดล RandomForest
+            st.subheader('กราฟผลลัพธ์การเติมค่า')
+            plot_data(filled_data, original_nan_indexes)
 
-        # แสดงผลลัพธ์การเติมค่าเป็นตาราง
-        st.subheader('ตารางข้อมูลที่เติมค่า (datetime, wl_up)')
-        st.write(filled_data[['wl_up']])
+            # แสดงผลลัพธ์การเติมค่าเป็นตาราง
+            st.subheader('ตารางข้อมูลที่เติมค่า (datetime, wl_up)')
+            st.write(filled_data[['wl_up']])
+
 
 
 
