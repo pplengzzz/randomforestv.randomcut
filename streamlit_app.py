@@ -40,7 +40,7 @@ def process_data(file_path):
 
     return data
 
-# ฟังก์ชันสำหรับการตัดข้อมูลตามวันที่ที่ผู้ใช้เลือก
+# ฟังก์ชันสำหรับการตัดข้อมูลตามวันที่และเวลาที่ผู้ใช้เลือก
 def manual_cut_data(data, start_datetime, end_datetime):
     # กรองข้อมูลตามช่วงวันที่และเวลา
     data_in_range = data.loc[start_datetime:end_datetime]
@@ -84,6 +84,7 @@ def fill_missing_values(data, original_nan_indexes):
 
 # ฟังก์ชันสำหรับการ plot ข้อมูล
 def plot_data(data, title="Water Level Over Time"):
+    data = data.sort_index()  # เรียงลำดับ datetime ก่อนการ plot
     plt.figure(figsize=(18, 10))
     plt.plot(data.index, data['wl_up'], label='Water Level', color='blue', alpha=0.6)
     plt.title(title, fontsize=18)
@@ -95,12 +96,15 @@ def plot_data(data, title="Water Level Over Time"):
     st.pyplot(plt)
 
 def plot_filled_data(filled_data, original_data, original_nan_indexes):
-    plt.figure(figsize=(18, 10))  # ปรับขนาดของกราฟให้ใหญ่ขึ้น
+    filled_data = filled_data.sort_index()  # เรียงลำดับ datetime ก่อนการ plot
+    original_data = original_data.sort_index()  # เรียงลำดับ datetime ก่อนการ plot
+
+    plt.figure(figsize=(18, 10))
 
     # สีน้ำเงินสำหรับค่าจริงที่ไม่ได้ถูกตัด
     plt.plot(filled_data.index, original_data['wl_up'], label='Actual Values', color='blue', alpha=0.6)
 
-    # สีฟ้าอ่อนสำหรับค่าที่ถูกตัดออก แสดงเฉพาะช่วงที่ถูกตัด ไม่ให้ต่อเส้น
+    # สีฟ้าอ่อนสำหรับค่าที่ถูกตัดออก แสดงเฉพาะช่วงที่ถูกตัด
     plt.plot(original_nan_indexes, original_data.loc[original_nan_indexes, 'wl_up'], 
              color='lightblue', alpha=0.6, label='Missing Values (Cut)', linestyle='')
 
@@ -124,7 +128,7 @@ if uploaded_file is not None:
     full_data = process_data(uploaded_file)
 
     # ให้ผู้ใช้เลือกช่วงวันที่ที่สนใจ
-    st.subheader("เลือกช่วงวันที่ที่สนใจ")
+    st.subheader("เลือกช่วงเวลา")
     start_date = st.date_input("เลือกวันเริ่มต้น", pd.to_datetime(full_data.index.min()).date())
     end_date = st.date_input("เลือกวันสิ้นสุด", pd.to_datetime(full_data.index.max()).date())
 
@@ -138,12 +142,14 @@ if uploaded_file is not None:
 
         # ให้ผู้ใช้เลือกวันและเวลาที่ต้องการตัดข้อมูล
         st.subheader("เลือกวันและเวลาที่ต้องการตัดข้อมูล")
+        start_datetime = st.date_input("เลือกวันที่เริ่มต้น", pd.to_datetime(data_selected.index.min()).date())
         start_time = st.time_input("เลือกเวลาเริ่มต้น", pd.to_datetime(data_selected.index.min()).time())
+        end_datetime = st.date_input("เลือกวันที่สิ้นสุด", pd.to_datetime(data_selected.index.max()).date())
         end_time = st.time_input("เลือกเวลาสิ้นสุด", pd.to_datetime(data_selected.index.max()).time())
 
-        # นำวันและเวลาที่ผู้ใช้เลือกมารวมเป็น datetime
-        start_datetime = pd.to_datetime(f"{start_date} {start_time}")
-        end_datetime = pd.to_datetime(f"{end_date} {end_time}")
+        # รวมวันและเวลาที่ผู้ใช้เลือกเข้าด้วยกัน
+        start_datetime = pd.to_datetime(f"{start_datetime} {start_time}")
+        end_datetime = pd.to_datetime(f"{end_datetime} {end_time}")
 
         if st.button("ตัดข้อมูล"):
             # ตัดข้อมูลตามวันที่และเวลาที่ผู้ใช้เลือก
