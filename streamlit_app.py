@@ -21,7 +21,7 @@ def plot_original_data(data, original_nan_indexes=None):
     if original_nan_indexes is not None:
         fig.add_scatter(x=original_nan_indexes, y=data.loc[original_nan_indexes, 'wl_up'], mode='markers', name='Missing Values (Cut)', marker=dict(color='orange'))
 
-    # ปรับแต่งกราฟและซ่อน legend สำหรับกราฟแรก
+    # ปรับแต่งกราฟ
     fig.update_layout(
         xaxis_title="Date",
         yaxis_title="Water Level (wl_up)",
@@ -47,7 +47,7 @@ def plot_filled_data(original_data, filled_data, original_nan_indexes):
     if original_nan_indexes is not None:
         fig.add_scatter(x=filled_data.loc[original_nan_indexes].index, y=filled_data.loc[original_nan_indexes, 'wl_up'], mode='lines', name='Filled Values (Model)', line=dict(color='green'))
 
-    # ปรับแต่งกราฟและลดความเข้มของเส้นจริง (สีน้ำเงิน) ให้โปร่งใสขึ้น
+    # ปรับแต่งกราฟ
     fig.update_traces(line=dict(color='blue', width=2, dash='solid'), selector=dict(name='Actual Values'))
     fig.update_traces(opacity=0.6, selector=dict(name='Actual Values'))  # เพิ่มความโปร่งใสให้เส้นจริง
     fig.update_layout(
@@ -61,7 +61,7 @@ def plot_filled_data(original_data, filled_data, original_nan_indexes):
     )
     st.plotly_chart(fig)
 
-# ฟังก์ชันสำหรับการเติมค่าด้วย RandomForestRegressor แบบใช้ข้อมูลก่อนหน้าแค่ 672 ค่า
+# ฟังก์ชันสำหรับการเติมค่าด้วย RandomForestRegressor แบบใช้ข้อมูลก่อนหน้าแค่ 1344 ค่า
 def fill_missing_values_with_limited_history(full_data):
     filled_data = full_data.copy()
 
@@ -70,8 +70,8 @@ def fill_missing_values_with_limited_history(full_data):
 
     # เติมค่าที่หายไปทีละค่า
     for idx in nan_indexes:
-        # หาค่าก่อนหน้าสูงสุด 672 ค่าหรือเท่าที่มีอยู่
-        window_start = max(0, filled_data.index.get_loc(idx) - 672)
+        # หาค่าก่อนหน้าสูงสุด 1344 ค่าหรือเท่าที่มีอยู่
+        window_start = max(0, filled_data.index.get_loc(idx) - 1344)
         train_data = filled_data.iloc[window_start:filled_data.index.get_loc(idx)].dropna(subset=['wl_up', 'hour', 'day_of_week', 'minute', 'lag_1', 'lag_2'])
 
         # ใช้ข้อมูลที่มีอยู่แล้วในการฝึกโมเดล
