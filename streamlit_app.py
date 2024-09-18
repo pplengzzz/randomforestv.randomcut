@@ -6,10 +6,31 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 # ตั้งค่าหน้าเว็บ Streamlit
-st.set_page_config(page_title='การพยากรณ์ด้วย RandomForest', page_icon=':ocean:')
+st.set_page_config(page_title='การจัดการข้อมูลค่าระดับน้ำและพยากรณ์ด้วย RandomForest', page_icon=':ocean:')
 
 # ชื่อของแอป
 st.title("และการพยากรณ์ด้วย RandomForest")
+
+# ฟังก์ชันสำหรับการแสดงกราฟข้อมูลทั้งเดือนก่อนการตัดค่า
+def plot_full_month_data(data, start_datetime):
+    # กำหนดเดือนจากวันที่ที่เลือก
+    selected_month = start_datetime.to_period("M")
+    month_data = data[data.index.to_period("M") == selected_month]
+    
+    # แสดงกราฟข้อมูลทั้งเดือน
+    fig = px.line(month_data, x=month_data.index, y='wl_up', title=f'Water Level in {selected_month} (Full Month)', labels={'x': 'Date', 'wl_up': 'Water Level (wl_up)'})
+    
+    # ปรับแต่งกราฟ
+    fig.update_layout(
+        xaxis_title="Date",
+        yaxis_title="Water Level (wl_up)",
+        title_font=dict(size=18),
+        xaxis=dict(showgrid=True),
+        yaxis=dict(showgrid=True),
+        hovermode="x",
+        legend=dict(itemsizing='constant', orientation='v', xanchor='center', yanchor='top'),
+    )
+    st.plotly_chart(fig)
 
 # ฟังก์ชันสำหรับการแสดงกราฟข้อมูลหลังตัดค่า (ใช้ plotly)
 def plot_original_data(data, original_nan_indexes=None):
@@ -59,25 +80,6 @@ def plot_filled_data(original_data, filled_data, original_nan_indexes):
         yaxis=dict(showgrid=True),
         hovermode="x",
         legend=dict(itemsizing='constant', orientation='v'),
-    )
-    st.plotly_chart(fig)
-
-# ฟังก์ชันสำหรับการแสดงกราฟช่วงเวลาที่เลือก
-def plot_selected_time_range(data, start_datetime, end_datetime):
-    # กรองข้อมูลให้แสดงเฉพาะช่วงเวลาที่เลือก
-    selected_data = data[(data.index >= start_datetime) & (data.index <= end_datetime)].sort_index()
-
-    fig = px.line(selected_data, x=selected_data.index, y='wl_up', title='Water Level Over Selected Time Range', labels={'x': 'Date', 'wl_up': 'Water Level (wl_up)'})
-    
-    # ปรับแต่งกราฟ
-    fig.update_layout(
-        xaxis_title="Date",
-        yaxis_title="Water Level (wl_up)",
-        title_font=dict(size=18),
-        xaxis=dict(showgrid=True),
-        yaxis=dict(showgrid=True),
-        hovermode="x",
-        legend=dict(itemsizing='constant', orientation='v', xanchor='center', yanchor='top'),
     )
     st.plotly_chart(fig)
 
@@ -186,8 +188,8 @@ if uploaded_file is not None:
     st.subheader('กราฟตัวอย่างข้อมูลหลังจากกรองค่า')
     plot_original_data(filtered_data)
 
-    # ให้ผู้ใช้เลือกช่วงวันที่และเวลาที่ต้องการดูข้อมูล
-    st.subheader("เลือกช่วงวันที่และเวลาที่สนใจ")
+    # ให้ผู้ใช้เลือกช่วงวันที่และเวลาที่ต้องการตัดข้อมูล
+    st.subheader("เลือกช่วงวันที่และเวลาที่ต้องการตัดข้อมูล")
     start_date = st.date_input("เลือกวันเริ่มต้น", pd.to_datetime(filtered_data.index.min()).date())
     start_time = st.time_input("เลือกเวลาเริ่มต้น", value=pd.to_datetime(filtered_data.index.min()).time())
     end_date = st.date_input("เลือกวันสิ้นสุด", pd.to_datetime(filtered_data.index.max()).date())
@@ -201,12 +203,10 @@ if uploaded_file is not None:
     if not filtered_data.index.isin(pd.date_range(start=start_datetime, end=end_datetime)).any():
         st.error("ไม่มีข้อมูลในช่วงวันที่ที่เลือก กรุณาเลือกช่วงวันที่ที่มีข้อมูล")
     else:
-        if st.button("แสดงกราฟช่วงเวลาที่เลือก"):
-            # แสดงกราฟช่วงเวลาที่เลือก
-            st.subheader('กราฟข้อมูลช่วงเวลาที่เลือก')
-            plot_selected_time_range(filtered_data, start_datetime, end_datetime)
+        # แสดงกราฟข้อมูลทั้งเดือนก่อนทำการตัด
+        st.subheader('กราฟข้อมูลทั้งเดือนก่อนทำการตัด')
+        plot_full_month_data(filtered_data, start_datetime)
 
-        # ส่วนการตัดข้อมูลและเติมค่าจะทำงานเหมือนเดิม
         if st.button("ตัดข้อมูล"):
             # ตัดข้อมูลตามช่วงวันที่ที่ผู้ใช้เลือก
             original_data = filtered_data.copy()
@@ -239,6 +239,7 @@ if uploaded_file is not None:
                 st.write(filled_data[['wl_up']])
             else:
                 st.error("ไม่พบข้อมูลในช่วงวันที่ที่เลือก กรุณาเลือกวันที่ใหม่")
+
 
 
 
