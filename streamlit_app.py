@@ -35,6 +35,7 @@ def plot_original_data(data, original_nan_indexes=None):
 
 # ฟังก์ชันสำหรับการแสดงกราฟที่ถูกเติมค่าแล้ว (ใช้ plotly)
 def plot_filled_data(original_data, filled_data, original_nan_indexes):
+    original_data = original_data.sort_index()  # เรียงลำดับ datetime ก่อนการ plot
     filled_data = filled_data.sort_index()  # เรียงลำดับ datetime ก่อนการ plot
 
     fig = px.line(original_data, x=original_data.index, y='wl_up', title='Water Level Over Time (After Filling)', labels={'x': 'Date', 'wl_up': 'Water Level (wl_up)'})
@@ -61,38 +62,82 @@ def plot_filled_data(original_data, filled_data, original_nan_indexes):
     )
     st.plotly_chart(fig)
 
-# ฟังก์ชันสำหรับการเติมค่าด้วย RandomForestRegressor แบบใช้ข้อมูลก่อนหน้าแค่ 2688 ค่าจริง
-def fill_missing_values_with_real_only(full_data):
+# ฟังก์ชันสำหรับการแสดงกราฟช่วงเวลาที่เลือก
+def plot_selected_time_range(data, start_datetime, end_datetime):
+    # กรองข้อมูลให้แสดงเฉพาะช่วงเวลาที่เลือก
+    selected_data = data[(data.index >= start_datetime) & (data.index <= end_datetime)].sort_index()
+
+    fig = px.line(selected_data, x=selected_data.index, y='wl_up', title='Water Level Over Selected Time Range', labels={'x': 'Date', 'wl_up': 'Water Level (wl_up)'})
+    
+    # ปรับแต่งกราฟ
+    fig.update_layout(
+        xaxis_title="Date",
+        yaxis_title="Water Level (wl_up)",
+        title_font=dict(size=18),
+        xaxis=dict(showgrid=True),
+        yaxis=dict(showgrid=True),
+        hovermode="x",
+        legend=dict(itemsizing='constant', orientation='v', xanchor='center', yanchor='top'),
+    )
+    st.plotly_chart(fig)
+
+# ฟังก์ชันสำหรับการเติมค่าด้วย RandomForestRegressor (ปรับให้ใช้ข้อมูลเดือนหากข้อมูลไม่พอ)
+def fill_missing_values(full_data):
     filled_data = full_data.copy()
 
-    # ค้นหาตำแหน่งที่มีค่า NaN
-    nan_indexes = filled_data[filled_data['wl_up'].isna()].index
+    # เพิ่มคอลัมน์ 'week' และ 'month' ให้กับ full_data (สร้างจาก datetime index)
+    filled_data['week'] = filled_data.index.to_period("W")
+    filled_data['month'] = filled_data.index.to_period("M")
 
-    # เติมค่าที่หายไปทีละค่า
-    for idx in nan_indexes:
-        # หาค่าก่อนหน้าสูงสุด 2688 ค่าหรือเท่าที่มีอยู่
-        window_start = max(0, filled_data.index.get_loc(idx) - 2688)
-        # เลือกเฉพาะค่าจริงในการฝึกโมเดล
-        train_data = filled_data.iloc[window_start:filled_data.index.get_loc(idx)].dropna(subset=['wl_up', 'hour', 'day_of_week', 'minute', 'lag_1', 'lag_2'])
+    # เติมค่าในแต่ละอาทิตย์ที่มีข้อมูลขาดหาย
+    missing_weeks = filled_data[filled_data['wl_up'].isna()]['week'].unique()
 
-        # ใช้ข้อมูลที่มีอยู่แล้วในการฝึกโมเดล
-        if len(train_data) > 1:  # ตรวจสอบว่ามีข้อมูลเพียงพอสำหรับการฝึก
+    for week in missing_weeks:
+        week_data = filled_data[filled_data['week'] == week]
+        missing_idx = week_data[week_data['wl_up'].isna()].index
+        train_data = week_data.dropna(subset=['wl_up', 'hour', 'day_of_week', 'minute', 'lag_1', 'lag_2'])
+
+        if len(train_data) > 1:
+            # ฝึกโมเดลจากข้อมูลสัปดาห์ปัจจุบัน
             X_train = train_data[['hour', 'day_of_week', 'minute', 'lag_1', 'lag_2']]
             y_train = train_data['wl_up']
 
             model = RandomForestRegressor(n_estimators=100, random_state=42)
             model.fit(X_train, y_train)
 
-            # เลือกข้อมูลที่ NaN เพียงแถวเดียวสำหรับการทำนาย
-            X_missing = filled_data.loc[[idx], ['hour', 'day_of_week', 'minute', 'lag_1', 'lag_2']]
+        else:
+            # ถ้าไม่มีข้อมูลเพียงพอในสัปดาห์นี้ ให้ลองใช้ข้อมูลสัปดาห์ก่อนหน้า
+            prev_week = pd.Period(week, freq='W') - 1
+            prev_week_data = filled_data[filled_data['week'] == prev_week.strftime('%Y-%m-%d')]
             
-            # ทำนายค่า NaN
-            filled_value = model.predict(X_missing)
-            filled_data.loc[idx, 'wl_up'] = filled_value  # เติมค่าในตำแหน่งที่ NaN
+            if len(prev_week_data.dropna(subset=['wl_up', 'hour', 'day_of_week', 'minute', 'lag_1', 'lag_2'])) > 1:
+                X_train = prev_week_data[['hour', 'day_of_week', 'minute', 'lag_1', 'lag_2']]
+                y_train = prev_week_data['wl_up']
 
-            # อัปเดต lag features โดยไม่รวมค่าที่ถูกทำนาย
-            filled_data['lag_1'] = filled_data['wl_up'].shift(1)
-            filled_data['lag_2'] = filled_data['wl_up'].shift(2)
+                model = RandomForestRegressor(n_estimators=100, random_state=42)
+                model.fit(X_train, y_train)
+            else:
+                # ถ้าไม่มีข้อมูลในสัปดาห์ก่อนหน้า ให้ใช้ข้อมูลทั้งเดือน
+                current_month = filled_data.loc[week_data.index[0], 'month']
+                month_data = filled_data[(filled_data['month'] == current_month) & (filled_data['week'] != week)]
+                month_train_data = month_data.dropna(subset=['wl_up', 'hour', 'day_of_week', 'minute', 'lag_1', 'lag_2'])
+
+                if len(month_train_data) > 1:
+                    X_train = month_train_data[['hour', 'day_of_week', 'minute', 'lag_1', 'lag_2']]
+                    y_train = month_train_data['wl_up']
+
+                    model = RandomForestRegressor(n_estimators=100, random_state=42)
+                    model.fit(X_train, y_train)
+                else:
+                    continue  # ถ้าไม่มีข้อมูลทั้งเดือน ข้ามไป
+
+        # ทำนายค่าที่หายไป
+        X_missing = week_data.loc[missing_idx, ['hour', 'day_of_week', 'minute', 'lag_1', 'lag_2']]
+        X_missing_clean = X_missing.dropna()
+
+        if not X_missing_clean.empty:
+            filled_values = model.predict(X_missing_clean)
+            filled_data.loc[X_missing_clean.index, 'wl_up'] = filled_values
 
     return filled_data
 
@@ -141,8 +186,8 @@ if uploaded_file is not None:
     st.subheader('กราฟตัวอย่างข้อมูลหลังจากกรองค่า')
     plot_original_data(filtered_data)
 
-    # ให้ผู้ใช้เลือกช่วงวันที่และเวลาที่ต้องการตัดข้อมูล
-    st.subheader("เลือกช่วงวันที่และเวลาที่ต้องการตัดข้อมูล")
+    # ให้ผู้ใช้เลือกช่วงวันที่และเวลาที่ต้องการดูข้อมูล
+    st.subheader("เลือกช่วงวันที่และเวลาที่สนใจ")
     start_date = st.date_input("เลือกวันเริ่มต้น", pd.to_datetime(filtered_data.index.min()).date())
     start_time = st.time_input("เลือกเวลาเริ่มต้น", value=pd.to_datetime(filtered_data.index.min()).time())
     end_date = st.date_input("เลือกวันสิ้นสุด", pd.to_datetime(filtered_data.index.max()).date())
@@ -156,6 +201,12 @@ if uploaded_file is not None:
     if not filtered_data.index.isin(pd.date_range(start=start_datetime, end=end_datetime)).any():
         st.error("ไม่มีข้อมูลในช่วงวันที่ที่เลือก กรุณาเลือกช่วงวันที่ที่มีข้อมูล")
     else:
+        if st.button("แสดงกราฟช่วงเวลาที่เลือก"):
+            # แสดงกราฟช่วงเวลาที่เลือก
+            st.subheader('กราฟข้อมูลช่วงเวลาที่เลือก')
+            plot_selected_time_range(filtered_data, start_datetime, end_datetime)
+
+        # ส่วนการตัดข้อมูลและเติมค่าจะทำงานเหมือนเดิม
         if st.button("ตัดข้อมูล"):
             # ตัดข้อมูลตามช่วงวันที่ที่ผู้ใช้เลือก
             original_data = filtered_data.copy()
@@ -172,8 +223,8 @@ if uploaded_file is not None:
                 st.subheader('กราฟข้อมูลหลังจากตัดค่าออก')
                 plot_original_data(filtered_data, original_nan_indexes=original_nan_indexes)
 
-                # เติมค่าด้วย RandomForest โดยใช้ข้อมูลจริงสูงสุด 2688 ค่า
-                filled_data = fill_missing_values_with_real_only(filtered_data)
+                # เติมค่าด้วย RandomForest
+                filled_data = fill_missing_values(filtered_data)
 
                 # คำนวณความแม่นยำระหว่างค่าจริงที่ถูกตัดออกกับค่าที่โมเดลเติมกลับ
                 st.subheader('ผลการคำนวณความแม่นยำ')
@@ -188,6 +239,7 @@ if uploaded_file is not None:
                 st.write(filled_data[['wl_up']])
             else:
                 st.error("ไม่พบข้อมูลในช่วงวันที่ที่เลือก กรุณาเลือกวันที่ใหม่")
+
 
 
 
