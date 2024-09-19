@@ -122,9 +122,6 @@ if uploaded_file is not None:
         st.session_state['selected_graph'] = plot_selected_time_range(filtered_data, start_date, end_date)
         st.plotly_chart(st.session_state['selected_graph'])
 
-    if st.session_state['selected_graph'] is not None:
-        st.plotly_chart(st.session_state['selected_graph'])
-
     if st.session_state['start_date'] is not None and st.session_state['end_date'] is not None:
         st.subheader("เลือกช่วงวันที่และเวลาที่ต้องการตัดข้อมูล")
         start_date_cut = st.date_input("เลือกวันเริ่มต้น (ตัดข้อมูล)", pd.to_datetime(filtered_data.index.min()).date(), key="start_date_cut")
@@ -142,7 +139,7 @@ if uploaded_file is not None:
                 filtered_data.loc[date_mask, 'wl_up'] = np.nan
                 original_nan_indexes = filtered_data[filtered_data['wl_up'].isna()].index
 
-                # แสดงกราฟช่วงที่สนใจก่อน
+                # แสดงกราฟช่วงที่สนใจก่อน (คงไว้แค่กราฟเดียว)
                 st.plotly_chart(st.session_state['selected_graph'])
 
                 # แสดงกราฟข้อมูลที่ถูกตัด
