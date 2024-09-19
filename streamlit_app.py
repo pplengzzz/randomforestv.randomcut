@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 # ตั้งค่าหน้าเว็บ Streamlit
-st.set_page_config(page_title='การจัดการค่าระดับน้ำและการพยากรณ์ด้วย RandomForest', page_icon=':ocean:')
+st.set_page_config(page_title='การพยากรณ์ด้วย RandomForest', page_icon=':ocean:')
 
 # ฟังก์ชันสำหรับการแสดงกราฟข้อมูลทั้งเดือนก่อนการตัดค่า
 def plot_full_month_data(data, start_datetime):
@@ -154,6 +154,7 @@ if uploaded_file is not None:
                 st.write(filled_data[['wl_up']])
             else:
                 st.error("ไม่พบข้อมูลในช่วงวันที่ที่เลือก กรุณาเลือกวันที่ใหม่")
+
 
 
 
