@@ -33,6 +33,25 @@ def plot_original_data(data, original_nan_indexes=None):
     fig.update_layout(xaxis_title="Date", yaxis_title="Water Level (wl_up)")
     return fig
 
+# ฟังก์ชันสำหรับการแสดงกราฟที่ถูกเติมค่าแล้ว (ใช้ plotly)
+def plot_filled_data(original_data, filled_data, original_nan_indexes):
+    original_data = original_data.sort_index()
+    filled_data = filled_data.sort_index()
+    
+    # กราฟของค่าจริง
+    fig = px.line(original_data, x=original_data.index, y='wl_up', title='Water Level Over Time (After Filling)', labels={'x': 'Date', 'wl_up': 'Water Level (wl_up)'})
+
+    # Plot ค่าที่ถูกตัดออก (สีส้ม)
+    if original_nan_indexes is not None:
+        fig.add_scatter(x=original_nan_indexes, y=original_data.loc[original_nan_indexes, 'wl_up'], mode='markers', name='Cut Values', marker=dict(color='orange'))
+
+    # Plot ค่าที่เติมด้วยโมเดล (สีเขียว)
+    if original_nan_indexes is not None:
+        fig.add_scatter(x=filled_data.loc[original_nan_indexes].index, y=filled_data.loc[original_nan_indexes, 'wl_up'], mode='lines', name='Filled Values (Model)', line=dict(color='green'))
+
+    fig.update_layout(xaxis_title="Date", yaxis_title="Water Level (wl_up)")
+    return fig
+
 # ฟังก์ชันสำหรับการเติมค่าด้วย RandomForestRegressor
 def fill_missing_values(full_data):
     filled_data = full_data.copy()
@@ -156,7 +175,7 @@ if uploaded_file is not None:
 
                 # แสดงกราฟข้อมูลที่เติมค่าแล้ว
                 st.subheader('กราฟผลลัพธ์การเติมค่า')
-                st.plotly_chart(plot_original_data(filled_data, original_nan_indexes))
+                st.plotly_chart(plot_filled_data(original_data, filled_data, original_nan_indexes))
 
                 # แสดงผลลัพธ์เป็นตาราง
                 st.subheader('ตารางข้อมูลที่เติมค่า (datetime, wl_up)')
