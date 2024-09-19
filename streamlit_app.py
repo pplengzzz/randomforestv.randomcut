@@ -8,44 +8,24 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 # ตั้งค่าหน้าเว็บ Streamlit
 st.set_page_config(page_title='การพยากรณ์ด้วย RandomForest', page_icon=':ocean:')
 
-# ชื่อของแอป (คำอธิบายที่หายไป)
+# ชื่อของแอป
 st.title("การจัดการค่าระดับน้ำและการพยากรณ์ด้วย RandomForest")
-
-# ฟังก์ชันสำหรับการแสดงกราฟข้อมูลทั้งเดือนก่อนการตัดค่า
-def plot_full_month_data(data, start_datetime):
-    selected_month = start_datetime.to_period("M")
-    month_data = data[data.index.to_period("M") == selected_month]
-    fig = px.line(month_data, x=month_data.index, y='wl_up', title=f'Water Level in {selected_month} (Full Month)', labels={'x': 'Date', 'wl_up': 'Water Level (wl_up)'})
-    fig.update_layout(xaxis_title="Date", yaxis_title="Water Level (wl_up)")
-    st.plotly_chart(fig)
 
 # ฟังก์ชันสำหรับการแสดงกราฟข้อมูลช่วงที่เลือกก่อนการตัด
 def plot_selected_time_range(data, start_date, end_date):
     selected_data = data[(data.index.date >= start_date) & (data.index.date <= end_date)]
     fig = px.line(selected_data, x=selected_data.index, y='wl_up', title=f'Water Level from {start_date} to {end_date}', labels={'x': 'Date', 'wl_up': 'Water Level (wl_up)'})
     fig.update_layout(xaxis_title="Date", yaxis_title="Water Level (wl_up)")
-    st.plotly_chart(fig)
+    return fig
 
-# ฟังก์ชันสำหรับการแสดงกราฟข้อมูลหลังตัดค่า
+# ฟังก์ชันสำหรับการแสดงกราฟข้อมูลหลังตัดค่า (ใช้ plotly)
 def plot_original_data(data, original_nan_indexes=None):
     data = data.sort_index()
     fig = px.line(data, x=data.index, y='wl_up', title='Water Level Over Time (After Cutting)', labels={'x': 'Date', 'wl_up': 'Water Level (wl_up)'})
     if original_nan_indexes is not None:
         fig.add_scatter(x=original_nan_indexes, y=data.loc[original_nan_indexes, 'wl_up'], mode='markers', name='Missing Values (Cut)', marker=dict(color='orange'))
     fig.update_layout(xaxis_title="Date", yaxis_title="Water Level (wl_up)")
-    st.plotly_chart(fig)
-
-# ฟังก์ชันสำหรับการแสดงกราฟที่ถูกเติมค่าแล้ว
-def plot_filled_data(original_data, filled_data, original_nan_indexes):
-    original_data = original_data.sort_index()
-    filled_data = filled_data.sort_index()
-    fig = px.line(original_data, x=original_data.index, y='wl_up', title='Water Level Over Time (After Filling)', labels={'x': 'Date', 'wl_up': 'Water Level (wl_up)'})
-    if original_nan_indexes is not None:
-        fig.add_scatter(x=original_nan_indexes, y=original_data.loc[original_nan_indexes, 'wl_up'], mode='markers', name='Cut Values', marker=dict(color='orange'))
-    if original_nan_indexes is not None:
-        fig.add_scatter(x=filled_data.loc[original_nan_indexes].index, y=filled_data.loc[original_nan_indexes, 'wl_up'], mode='lines', name='Filled Values (Model)', line=dict(color='green'))
-    fig.update_layout(xaxis_title="Date", yaxis_title="Water Level (wl_up)")
-    st.plotly_chart(fig)
+    return fig
 
 # ฟังก์ชันสำหรับการเติมค่าด้วย RandomForestRegressor
 def fill_missing_values(full_data):
@@ -100,6 +80,8 @@ if 'start_date' not in st.session_state:
     st.session_state['start_date'] = None
 if 'end_date' not in st.session_state:
     st.session_state['end_date'] = None
+if 'selected_graph' not in st.session_state:
+    st.session_state['selected_graph'] = None
 
 # อัปโหลดไฟล์ CSV ข้อมูลจริง
 uploaded_file = st.file_uploader("เลือกไฟล์ CSV ข้อมูลจริง", type="csv")
@@ -118,9 +100,6 @@ if uploaded_file is not None:
     data['lag_2'].ffill(inplace=True)
     filtered_data = data[data['wl_up'] >= 100]
 
-    st.subheader('กราฟตัวอย่างข้อมูลหลังจากกรองค่า')
-    plot_original_data(filtered_data)
-
     st.subheader("เลือกช่วงวันที่ที่สนใจก่อนการตัดข้อมูล")
     start_date = st.date_input("เลือกวันเริ่มต้น (ดูข้อมูล)", pd.to_datetime(filtered_data.index.min()).date())
     end_date = st.date_input("เลือกวันสิ้นสุด (ดูข้อมูล)", pd.to_datetime(filtered_data.index.max()).date())
@@ -128,7 +107,11 @@ if uploaded_file is not None:
     if st.button("ตกลง (แสดงข้อมูลช่วงที่สนใจ)"):
         st.session_state['start_date'] = start_date
         st.session_state['end_date'] = end_date
-        plot_selected_time_range(filtered_data, start_date, end_date)
+        st.session_state['selected_graph'] = plot_selected_time_range(filtered_data, start_date, end_date)
+        st.plotly_chart(st.session_state['selected_graph'])
+
+    if st.session_state['selected_graph'] is not None:
+        st.plotly_chart(st.session_state['selected_graph'])
 
     if st.session_state['start_date'] is not None and st.session_state['end_date'] is not None:
         st.subheader("เลือกช่วงวันที่และเวลาที่ต้องการตัดข้อมูล")
@@ -146,18 +129,31 @@ if uploaded_file is not None:
             if date_mask.any():
                 filtered_data.loc[date_mask, 'wl_up'] = np.nan
                 original_nan_indexes = filtered_data[filtered_data['wl_up'].isna()].index
+
+                # แสดงกราฟช่วงที่สนใจก่อน
+                st.plotly_chart(st.session_state['selected_graph'])
+
+                # แสดงกราฟข้อมูลที่ถูกตัด
                 st.subheader('กราฟข้อมูลหลังจากตัดค่าออก')
-                plot_original_data(filtered_data, original_nan_indexes)
+                cut_graph = plot_original_data(filtered_data, original_nan_indexes)
+                st.plotly_chart(cut_graph)
+
+                # เติมค่าด้วย RandomForest
                 filled_data = fill_missing_values(filtered_data)
+
+                # คำนวณความแม่นยำ
                 st.subheader('ผลการคำนวณความแม่นยำ')
                 calculate_accuracy(filled_data, original_data, original_nan_indexes)
+
+                # แสดงกราฟข้อมูลที่เติมค่าแล้ว
                 st.subheader('กราฟผลลัพธ์การเติมค่า')
-                plot_filled_data(original_data, filled_data, original_nan_indexes)
+                st.plotly_chart(plot_original_data(filled_data, original_nan_indexes))
+
+                # แสดงผลลัพธ์เป็นตาราง
                 st.subheader('ตารางข้อมูลที่เติมค่า (datetime, wl_up)')
                 st.write(filled_data[['wl_up']])
             else:
                 st.error("ไม่พบข้อมูลในช่วงวันที่ที่เลือก กรุณาเลือกวันที่ใหม่")
-
 
 
 
