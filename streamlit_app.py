@@ -8,6 +8,9 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 # ตั้งค่าหน้าเว็บ Streamlit
 st.set_page_config(page_title='การพยากรณ์ด้วย RandomForest', page_icon=':ocean:')
 
+# ชื่อของแอป (คำอธิบายที่หายไป)
+st.title("การจัดการค่าระดับน้ำและการพยากรณ์ด้วย RandomForest")
+
 # ฟังก์ชันสำหรับการแสดงกราฟข้อมูลทั้งเดือนก่อนการตัดค่า
 def plot_full_month_data(data, start_datetime):
     selected_month = start_datetime.to_period("M")
