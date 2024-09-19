@@ -11,6 +11,12 @@ st.set_page_config(page_title='การพยากรณ์ด้วย Random
 # ชื่อของแอป
 st.title("การจัดการค่าระดับน้ำและการพยากรณ์ด้วย RandomForest")
 
+# ฟังก์ชันสำหรับการแสดงกราฟข้อมูลทั้งไฟล์ (ตัวอย่าง)
+def plot_full_data(data):
+    fig = px.line(data, x=data.index, y='wl_up', title='Water Level Over Time (Full Data)', labels={'x': 'Date', 'wl_up': 'Water Level (wl_up)'})
+    fig.update_layout(xaxis_title="Date", yaxis_title="Water Level (wl_up)")
+    return fig
+
 # ฟังก์ชันสำหรับการแสดงกราฟข้อมูลช่วงที่เลือกก่อนการตัด
 def plot_selected_time_range(data, start_date, end_date):
     selected_data = data[(data.index.date >= start_date) & (data.index.date <= end_date)]
@@ -98,7 +104,13 @@ if uploaded_file is not None:
     data['lag_2'] = data['wl_up'].shift(2)
     data['lag_1'].ffill(inplace=True)
     data['lag_2'].ffill(inplace=True)
+
+    # ตัดข้อมูลที่มีค่า wl_up น้อยกว่า 100 ออก
     filtered_data = data[data['wl_up'] >= 100]
+
+    # แสดงกราฟข้อมูลทั้งไฟล์ก่อน
+    st.subheader('กราฟตัวอย่างข้อมูลทั้งไฟล์หลังจากตัดค่าที่น้อยกว่า 100 ออก')
+    st.plotly_chart(plot_full_data(filtered_data))
 
     st.subheader("เลือกช่วงวันที่ที่สนใจก่อนการตัดข้อมูล")
     start_date = st.date_input("เลือกวันเริ่มต้น (ดูข้อมูล)", pd.to_datetime(filtered_data.index.min()).date())
