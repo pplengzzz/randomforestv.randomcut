@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 # ตั้งค่าหน้าเว็บ Streamlit
-st.set_page_config(page_title='การจัดการข้อมูลค่าระดับน้ำและพยากรณ์ด้วย RandomForest', page_icon=':ocean:')
+st.set_page_config(page_title='การพยากรณ์ด้วย RandomForest', page_icon=':ocean:')
 
 # ชื่อของแอป
 st.title("และการพยากรณ์ด้วย RandomForest")
@@ -19,6 +19,24 @@ def plot_full_month_data(data, start_datetime):
     
     # แสดงกราฟข้อมูลทั้งเดือน
     fig = px.line(month_data, x=month_data.index, y='wl_up', title=f'Water Level in {selected_month} (Full Month)', labels={'x': 'Date', 'wl_up': 'Water Level (wl_up)'})
+    
+    # ปรับแต่งกราฟ
+    fig.update_layout(
+        xaxis_title="Date",
+        yaxis_title="Water Level (wl_up)",
+        title_font=dict(size=18),
+        xaxis=dict(showgrid=True),
+        yaxis=dict(showgrid=True),
+        hovermode="x",
+        legend=dict(itemsizing='constant', orientation='v', xanchor='center', yanchor='top'),
+    )
+    st.plotly_chart(fig)
+
+# ฟังก์ชันสำหรับการแสดงกราฟข้อมูลช่วงที่เลือกก่อนการตัด
+def plot_selected_time_range(data, start_date, end_date):
+    selected_data = data[(data.index.date >= start_date) & (data.index.date <= end_date)]
+    
+    fig = px.line(selected_data, x=selected_data.index, y='wl_up', title=f'Water Level from {start_date} to {end_date}', labels={'x': 'Date', 'wl_up': 'Water Level (wl_up)'})
     
     # ปรับแต่งกราฟ
     fig.update_layout(
@@ -188,57 +206,64 @@ if uploaded_file is not None:
     st.subheader('กราฟตัวอย่างข้อมูลหลังจากกรองค่า')
     plot_original_data(filtered_data)
 
-    # ให้ผู้ใช้เลือกช่วงวันที่และเวลาที่ต้องการตัดข้อมูล
-    st.subheader("เลือกช่วงวันที่และเวลาที่ต้องการตัดข้อมูล")
-    start_date = st.date_input("เลือกวันเริ่มต้น", pd.to_datetime(filtered_data.index.min()).date())
-    start_time = st.time_input("เลือกเวลาเริ่มต้น", value=pd.to_datetime(filtered_data.index.min()).time())
-    end_date = st.date_input("เลือกวันสิ้นสุด", pd.to_datetime(filtered_data.index.max()).date())
-    end_time = st.time_input("เลือกเวลาสิ้นสุด", value=pd.to_datetime(filtered_data.index.max()).time())
+    # ให้ผู้ใช้เลือกช่วงวันที่ที่สนใจก่อนการตัดข้อมูล (เฉพาะวันที่)
+    st.subheader("เลือกช่วงวันที่ที่สนใจก่อนการตัดข้อมูล")
+    start_date = st.date_input("เลือกวันเริ่มต้น (ดูข้อมูล)", pd.to_datetime(filtered_data.index.min()).date(), key="start_date_view")
+    end_date = st.date_input("เลือกวันสิ้นสุด (ดูข้อมูล)", pd.to_datetime(filtered_data.index.max()).date(), key="end_date_view")
 
-    # รวมวันและเวลาที่เลือกเข้าด้วยกันเป็นช่วงเวลา
-    start_datetime = pd.to_datetime(f"{start_date} {start_time}")
-    end_datetime = pd.to_datetime(f"{end_date} {end_time}")
+    if st.button("ตกลง (แสดงข้อมูลช่วงที่สนใจ)"):
+        # แสดงกราฟช่วงวันที่ที่สนใจ
+        st.subheader('กราฟข้อมูลช่วงวันที่ที่เลือก')
+        plot_selected_time_range(filtered_data, start_date, end_date)
 
-    # ตรวจสอบว่ามีข้อมูลในช่วงวันที่และเวลาที่เลือกหรือไม่
-    if not filtered_data.index.isin(pd.date_range(start=start_datetime, end=end_datetime)).any():
-        st.error("ไม่มีข้อมูลในช่วงวันที่ที่เลือก กรุณาเลือกช่วงวันที่ที่มีข้อมูล")
-    else:
-        # แสดงกราฟข้อมูลทั้งเดือนก่อนทำการตัด
-        st.subheader('กราฟข้อมูลทั้งเดือนก่อนทำการตัด')
-        plot_full_month_data(filtered_data, start_datetime)
+        # ให้ผู้ใช้เลือกช่วงวันที่และเวลาที่ต้องการตัดข้อมูล
+        st.subheader("เลือกช่วงวันที่และเวลาที่ต้องการตัดข้อมูล")
+        start_date_cut = st.date_input("เลือกวันเริ่มต้น (ตัดข้อมูล)", pd.to_datetime(filtered_data.index.min()).date(), key="start_date_cut")
+        start_time_cut = st.time_input("เลือกเวลาเริ่มต้น (ตัดข้อมูล)", value=pd.to_datetime(filtered_data.index.min()).time(), key="start_time_cut")
+        end_date_cut = st.date_input("เลือกวันสิ้นสุด (ตัดข้อมูล)", pd.to_datetime(filtered_data.index.max()).date(), key="end_date_cut")
+        end_time_cut = st.time_input("เลือกเวลาสิ้นสุด (ตัดข้อมูล)", value=pd.to_datetime(filtered_data.index.max()).time(), key="end_time_cut")
 
-        if st.button("ตัดข้อมูล"):
-            # ตัดข้อมูลตามช่วงวันที่ที่ผู้ใช้เลือก
-            original_data = filtered_data.copy()
+        # รวมวันและเวลาที่เลือกเข้าด้วยกันเป็นช่วงเวลา
+        start_datetime_cut = pd.to_datetime(f"{start_date_cut} {start_time_cut}")
+        end_datetime_cut = pd.to_datetime(f"{end_date_cut} {end_time_cut}")
 
-            # ตรวจสอบว่ามีข้อมูลในช่วงวันที่หรือไม่
-            date_mask = (filtered_data.index >= start_datetime) & (filtered_data.index <= end_datetime)
-            if date_mask.any():
-                filtered_data.loc[date_mask, 'wl_up'] = np.nan
+        # ตรวจสอบว่ามีข้อมูลในช่วงวันที่และเวลาที่เลือกหรือไม่
+        if not filtered_data.index.isin(pd.date_range(start=start_datetime_cut, end=end_datetime_cut)).any():
+            st.error("ไม่มีข้อมูลในช่วงวันที่ที่เลือก กรุณาเลือกช่วงวันที่ที่มีข้อมูล")
+        else:
+            if st.button("ตัดข้อมูล"):
+                # ตัดข้อมูลตามช่วงวันที่ที่ผู้ใช้เลือก
+                original_data = filtered_data.copy()
 
-                # เก็บตำแหน่ง NaN ก่อนเติมค่า
-                original_nan_indexes = filtered_data[filtered_data['wl_up'].isna()].index
+                # ตรวจสอบว่ามีข้อมูลในช่วงวันที่หรือไม่
+                date_mask = (filtered_data.index >= start_datetime_cut) & (filtered_data.index <= end_datetime_cut)
+                if date_mask.any():
+                    filtered_data.loc[date_mask, 'wl_up'] = np.nan
 
-                # แสดงกราฟข้อมูลที่ถูกตัด (คงเดิม)
-                st.subheader('กราฟข้อมูลหลังจากตัดค่าออก')
-                plot_original_data(filtered_data, original_nan_indexes=original_nan_indexes)
+                    # เก็บตำแหน่ง NaN ก่อนเติมค่า
+                    original_nan_indexes = filtered_data[filtered_data['wl_up'].isna()].index
 
-                # เติมค่าด้วย RandomForest
-                filled_data = fill_missing_values(filtered_data)
+                    # แสดงกราฟข้อมูลที่ถูกตัด (คงเดิม)
+                    st.subheader('กราฟข้อมูลหลังจากตัดค่าออก')
+                    plot_original_data(filtered_data, original_nan_indexes=original_nan_indexes)
 
-                # คำนวณความแม่นยำระหว่างค่าจริงที่ถูกตัดออกกับค่าที่โมเดลเติมกลับ
-                st.subheader('ผลการคำนวณความแม่นยำ')
-                calculate_accuracy(filled_data, original_data, original_nan_indexes)
+                    # เติมค่าด้วย RandomForest
+                    filled_data = fill_missing_values(filtered_data)
 
-                # แสดงกราฟข้อมูลที่เติมค่าด้วยโมเดล RandomForest (เปลี่ยนกราฟ)
-                st.subheader('กราฟผลลัพธ์การเติมค่า')
-                plot_filled_data(original_data, filled_data, original_nan_indexes)
+                    # คำนวณความแม่นยำระหว่างค่าจริงที่ถูกตัดออกกับค่าที่โมเดลเติมกลับ
+                    st.subheader('ผลการคำนวณความแม่นยำ')
+                    calculate_accuracy(filled_data, original_data, original_nan_indexes)
 
-                # แสดงผลลัพธ์การเติมค่าเป็นตาราง
-                st.subheader('ตารางข้อมูลที่เติมค่า (datetime, wl_up)')
-                st.write(filled_data[['wl_up']])
-            else:
-                st.error("ไม่พบข้อมูลในช่วงวันที่ที่เลือก กรุณาเลือกวันที่ใหม่")
+                    # แสดงกราฟข้อมูลที่เติมค่าด้วยโมเดล RandomForest (เปลี่ยนกราฟ)
+                    st.subheader('กราฟผลลัพธ์การเติมค่า')
+                    plot_filled_data(original_data, filled_data, original_nan_indexes)
+
+                    # แสดงผลลัพธ์การเติมค่าเป็นตาราง
+                    st.subheader('ตารางข้อมูลที่เติมค่า (datetime, wl_up)')
+                    st.write(filled_data[['wl_up']])
+                else:
+                    st.error("ไม่พบข้อมูลในช่วงวันที่ที่เลือก กรุณาเลือกวันที่ใหม่")
+
 
 
 
