@@ -83,6 +83,7 @@ if uploaded_file_target is not None:
     data_target = pd.read_csv(uploaded_file_target)
     data_target['datetime'] = pd.to_datetime(data_target['datetime'])
     data_target.set_index('datetime', inplace=True)
+    data_target.index = data_target.index.tz_localize('UTC')  # กำหนด timezone ให้เป็น UTC
     data_target['hour'] = data_target.index.hour
     data_target['day_of_week'] = data_target.index.dayofweek
     data_target['minute'] = data_target.index.minute
@@ -103,6 +104,7 @@ if uploaded_file_target is not None:
         data_1 = pd.read_csv(uploaded_file_1)
         data_1['datetime'] = pd.to_datetime(data_1['datetime'])
         data_1.set_index('datetime', inplace=True)
+        data_1.index = data_1.index.tz_localize('UTC')  # กำหนด timezone ให้เป็น UTC
         data_1['hour'] = data_1.index.hour
         data_1['day_of_week'] = data_1.index.dayofweek
         data_1['minute'] = data_1.index.minute
@@ -119,6 +121,7 @@ if uploaded_file_target is not None:
         data_2 = pd.read_csv(uploaded_file_2)
         data_2['datetime'] = pd.to_datetime(data_2['datetime'])
         data_2.set_index('datetime', inplace=True)
+        data_2.index = data_2.index.tz_localize('UTC')  # กำหนด timezone ให้เป็น UTC
         data_2['hour'] = data_2.index.hour
         data_2['day_of_week'] = data_2.index.dayofweek
         data_2['minute'] = data_2.index.minute
@@ -139,8 +142,9 @@ if uploaded_file_target is not None:
         end_date_cut = st.date_input("เลือกวันสิ้นสุด (ตัดข้อมูล)", pd.to_datetime(data_target.index.max()).date(), key="end_date_cut")
         end_time_cut = st.time_input("เลือกเวลาสิ้นสุด (ตัดข้อมูล)", value=pd.to_datetime(data_target.index.max()).time(), key="end_time_cut")
 
-        start_datetime_cut = pd.to_datetime(f"{start_date_cut} {start_time_cut}")
-        end_datetime_cut = pd.to_datetime(f"{end_date_cut} {end_time_cut}")
+        # กำหนด timezone ให้ start_datetime_cut และ end_datetime_cut เป็น UTC
+        start_datetime_cut = pd.to_datetime(f"{start_date_cut} {start_time_cut}").tz_localize('UTC')
+        end_datetime_cut = pd.to_datetime(f"{end_date_cut} {end_time_cut}").tz_localize('UTC')
 
         if st.button("ตัดข้อมูล"):
             original_data = data_target.copy()
