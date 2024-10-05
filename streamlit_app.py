@@ -83,7 +83,13 @@ if uploaded_file_target is not None:
     data_target = pd.read_csv(uploaded_file_target)
     data_target['datetime'] = pd.to_datetime(data_target['datetime'])
     data_target.set_index('datetime', inplace=True)
-    data_target.index = data_target.index.tz_localize('UTC')  # กำหนด timezone ให้เป็น UTC
+    
+    # ตรวจสอบและปรับ timezone ให้เป็น UTC
+    if data_target.index.tz is None:
+        data_target.index = data_target.index.tz_localize('UTC')
+    else:
+        data_target.index = data_target.index.tz_convert('UTC')
+
     data_target['hour'] = data_target.index.hour
     data_target['day_of_week'] = data_target.index.dayofweek
     data_target['minute'] = data_target.index.minute
@@ -104,7 +110,13 @@ if uploaded_file_target is not None:
         data_1 = pd.read_csv(uploaded_file_1)
         data_1['datetime'] = pd.to_datetime(data_1['datetime'])
         data_1.set_index('datetime', inplace=True)
-        data_1.index = data_1.index.tz_localize('UTC')  # กำหนด timezone ให้เป็น UTC
+        
+        # ตรวจสอบและปรับ timezone ให้เป็น UTC
+        if data_1.index.tz is None:
+            data_1.index = data_1.index.tz_localize('UTC')
+        else:
+            data_1.index = data_1.index.tz_convert('UTC')
+
         data_1['hour'] = data_1.index.hour
         data_1['day_of_week'] = data_1.index.dayofweek
         data_1['minute'] = data_1.index.minute
@@ -121,7 +133,13 @@ if uploaded_file_target is not None:
         data_2 = pd.read_csv(uploaded_file_2)
         data_2['datetime'] = pd.to_datetime(data_2['datetime'])
         data_2.set_index('datetime', inplace=True)
-        data_2.index = data_2.index.tz_localize('UTC')  # กำหนด timezone ให้เป็น UTC
+        
+        # ตรวจสอบและปรับ timezone ให้เป็น UTC
+        if data_2.index.tz is None:
+            data_2.index = data_2.index.tz_localize('UTC')
+        else:
+            data_2.index = data_2.index.tz_convert('UTC')
+
         data_2['hour'] = data_2.index.hour
         data_2['day_of_week'] = data_2.index.dayofweek
         data_2['minute'] = data_2.index.minute
@@ -184,6 +202,7 @@ if uploaded_file_target is not None:
                 st.error("ไม่พบข้อมูลในช่วงวันที่ที่เลือก กรุณาเลือกวันที่ใหม่")
     else:
         st.warning("กรุณาอัปโหลดไฟล์สถานีข้างบนหรือสถานีข้างล่างอย่างน้อยหนึ่งไฟล์เพื่อใช้ในการเทรน")
+
 
 
 
