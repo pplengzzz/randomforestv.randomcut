@@ -113,14 +113,63 @@ if uploaded_file_target is not None:
 
     # ตรวจสอบว่ามีข้อมูลสำหรับการเทรนหรือไม่
     if not data_train.empty:
-        # เติมค่าที่ขาดหายไป
-        filled_data = fill_missing_values(data_target, data_train)
+        st.subheader("เลือกช่วงวันที่ที่สนใจก่อนการตัดข้อมูล")
+        start_date = st.date_input("เลือกวันเริ่มต้น (ดูข้อมูล)", pd.to_datetime(data_target.index.min()).date())
+        end_date = st.date_input("เลือกวันสิ้นสุด (ดูข้อมูล)", pd.to_datetime(data_target.index.max()).date())
 
-        # แสดงผลลัพธ์เป็นตาราง
-        st.subheader('ตารางข้อมูลที่เติมค่า (datetime, wl_up)')
-        st.write(filled_data[['wl_up']])
+        if st.button("ตกลง (แสดงข้อมูลช่วงที่สนใจ)"):
+            selected_data = data_target[(data_target.index.date >= start_date) & (data_target.index.date <= end_date)]
+            st.subheader(f'ข้อมูลช่วงวันที่ {start_date} ถึง {end_date}')
+            st.write(selected_data)
+
+        st.subheader("เลือกช่วงวันที่และเวลาที่ต้องการตัดข้อมูล")
+        start_date_cut = st.date_input("เลือกวันเริ่มต้น (ตัดข้อมูล)", pd.to_datetime(data_target.index.min()).date(), key="start_date_cut")
+        start_time_cut = st.time_input("เลือกเวลาเริ่มต้น (ตัดข้อมูล)", value=pd.to_datetime(data_target.index.min()).time(), key="start_time_cut")
+        end_date_cut = st.date_input("เลือกวันสิ้นสุด (ตัดข้อมูล)", pd.to_datetime(data_target.index.max()).date(), key="end_date_cut")
+        end_time_cut = st.time_input("เลือกเวลาสิ้นสุด (ตัดข้อมูล)", value=pd.to_datetime(data_target.index.max()).time(), key="end_time_cut")
+
+        start_datetime_cut = pd.to_datetime(f"{start_date_cut} {start_time_cut}")
+        end_datetime_cut = pd.to_datetime(f"{end_date_cut} {end_time_cut}")
+
+        if st.button("ตัดข้อมูล"):
+            original_data = data_target.copy()
+            date_mask = (data_target.index >= start_datetime_cut) & (data_target.index <= end_datetime_cut)
+            if date_mask.any():
+                data_target.loc[date_mask, 'wl_up'] = np.nan
+                original_nan_indexes = data_target[data_target['wl_up'].isna()].index
+
+                # แสดงกราฟข้อมูลที่ถูกตัด
+                st.subheader('กราฟข้อมูลหลังจากตัดค่าออก')
+                fig = px.line(data_target, x=data_target.index, y='wl_up', title='Water Level Over Time (After Cutting)', labels={'x': 'Date', 'wl_up': 'Water Level (wl_up)'})
+                fig.add_scatter(x=original_nan_indexes, y=data_target.loc[original_nan_indexes, 'wl_up'], mode='markers', name='Cut Values', marker=dict(color='orange'))
+                st.plotly_chart(fig)
+
+                # เติมค่าด้วย RandomForest
+                filled_data = fill_missing_values(data_target, data_train)
+
+                # คำนวณความแม่นยำ
+                st.subheader('ผลการคำนวณความแม่นยำ')
+                actual_values = original_data.loc[original_nan_indexes, 'wl_up']
+                predicted_values = filled_data.loc[original_nan_indexes, 'wl_up']
+                mae = mean_absolute_error(actual_values, predicted_values)
+                rmse = np.sqrt(mean_squared_error(actual_values, predicted_values))
+                st.write(f"Mean Absolute Error (MAE): {mae:.4f}")
+                st.write(f"Root Mean Square Error (RMSE): {rmse:.4f}")
+
+                # แสดงกราฟข้อมูลที่เติมค่าแล้ว
+                st.subheader('กราฟผลลัพธ์การเติมค่า')
+                fig_filled = px.line(filled_data, x=filled_data.index, y='wl_up', title='Water Level Over Time (After Filling)', labels={'x': 'Date', 'wl_up': 'Water Level (wl_up)'})
+                fig_filled.add_scatter(x=original_nan_indexes, y=filled_data.loc[original_nan_indexes, 'wl_up'], mode='lines', name='Filled Values (Model)', line=dict(color='green'))
+                st.plotly_chart(fig_filled)
+
+                # แสดงผลลัพธ์เป็นตาราง
+                st.subheader('ตารางข้อมูลที่เติมค่า (datetime, wl_up)')
+                st.write(filled_data[['wl_up']])
+            else:
+                st.error("ไม่พบข้อมูลในช่วงวันที่ที่เลือก กรุณาเลือกวันที่ใหม่")
     else:
         st.warning("กรุณาอัปโหลดไฟล์สถานีข้างบนหรือสถานีข้างล่างอย่างน้อยหนึ่งไฟล์เพื่อใช้ในการเทรน")
+
 
 
 
