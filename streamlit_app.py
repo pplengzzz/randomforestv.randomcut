@@ -69,6 +69,12 @@ def fill_missing_values(full_data, train_data):
             filled_data.loc[X_missing_clean.index, 'wl_up'] = filled_values
     return filled_data
 
+# ฟังก์ชันสำหรับการแสดงกราฟ
+def plot_data(data, title):
+    fig = px.line(data, x=data.index, y='wl_up', title=title, labels={'x': 'วันที่', 'wl_up': 'ระดับน้ำ (wl_up)'})
+    fig.update_layout(xaxis_title="วันที่", yaxis_title="ระดับน้ำ (wl_up)")
+    return fig
+
 # อัปโหลดไฟล์ CSV สำหรับสถานีที่ต้องการเติมข้อมูล
 uploaded_file_target = st.file_uploader("เลือกไฟล์ CSV สถานีเป้าหมายที่ต้องการเติมข้อมูล", type="csv")
 
@@ -82,6 +88,10 @@ if uploaded_file_target is not None:
     data_target['minute'] = data_target.index.minute
     data_target['lag_1'] = data_target['wl_up'].shift(1)
     data_target['lag_2'] = data_target['wl_up'].shift(2)
+
+    # แสดงกราฟของไฟล์เป้าหมาย
+    st.subheader('ระดับน้ำที่สถานี สถานีที่ต้องการทำนาย')
+    st.plotly_chart(plot_data(data_target, "ระดับน้ำที่สถานีเป้าหมาย"))
 
     # อัปโหลดไฟล์สำหรับสถานีข้างบนและข้างล่าง
     uploaded_file_1 = st.file_uploader("เลือกไฟล์ CSV สถานีข้างบน (ถ้ามี)", type="csv")
@@ -98,6 +108,11 @@ if uploaded_file_target is not None:
         data_1['minute'] = data_1.index.minute
         data_1['lag_1'] = data_1['wl_up'].shift(1)
         data_1['lag_2'] = data_1['wl_up'].shift(2)
+        
+        # แสดงกราฟของสถานีข้างบน
+        st.subheader('ระดับน้ำที่สถานีข้างบน')
+        st.plotly_chart(plot_data(data_1, "ระดับน้ำที่สถานีข้างบน"))
+
         data_train = combine_data(data_train, data_1)
 
     if uploaded_file_2 is not None:
@@ -109,19 +124,15 @@ if uploaded_file_target is not None:
         data_2['minute'] = data_2.index.minute
         data_2['lag_1'] = data_2['wl_up'].shift(1)
         data_2['lag_2'] = data_2['wl_up'].shift(2)
+        
+        # แสดงกราฟของสถานีข้างล่าง
+        st.subheader('ระดับน้ำที่สถานีข้างล่าง')
+        st.plotly_chart(plot_data(data_2, "ระดับน้ำที่สถานีข้างล่าง"))
+
         data_train = combine_data(data_train, data_2)
 
     # ตรวจสอบว่ามีข้อมูลสำหรับการเทรนหรือไม่
     if not data_train.empty:
-        st.subheader("เลือกช่วงวันที่ที่สนใจก่อนการตัดข้อมูล")
-        start_date = st.date_input("เลือกวันเริ่มต้น (ดูข้อมูล)", pd.to_datetime(data_target.index.min()).date())
-        end_date = st.date_input("เลือกวันสิ้นสุด (ดูข้อมูล)", pd.to_datetime(data_target.index.max()).date())
-
-        if st.button("ตกลง (แสดงข้อมูลช่วงที่สนใจ)"):
-            selected_data = data_target[(data_target.index.date >= start_date) & (data_target.index.date <= end_date)]
-            st.subheader(f'ข้อมูลช่วงวันที่ {start_date} ถึง {end_date}')
-            st.write(selected_data)
-
         st.subheader("เลือกช่วงวันที่และเวลาที่ต้องการตัดข้อมูล")
         start_date_cut = st.date_input("เลือกวันเริ่มต้น (ตัดข้อมูล)", pd.to_datetime(data_target.index.min()).date(), key="start_date_cut")
         start_time_cut = st.time_input("เลือกเวลาเริ่มต้น (ตัดข้อมูล)", value=pd.to_datetime(data_target.index.min()).time(), key="start_time_cut")
@@ -169,6 +180,7 @@ if uploaded_file_target is not None:
                 st.error("ไม่พบข้อมูลในช่วงวันที่ที่เลือก กรุณาเลือกวันที่ใหม่")
     else:
         st.warning("กรุณาอัปโหลดไฟล์สถานีข้างบนหรือสถานีข้างล่างอย่างน้อยหนึ่งไฟล์เพื่อใช้ในการเทรน")
+
 
 
 
