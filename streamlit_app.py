@@ -180,14 +180,23 @@ if uploaded_file_target is not None:
                 # เติมค่าด้วย RandomForest
                 filled_data = fill_missing_values(data_target, data_train)
 
-                # คำนวณความแม่นยำ
-                st.subheader('ผลการคำนวณความแม่นยำ')
+                # คำนวณความแม่นยำ (ตรวจสอบว่ามีค่าจริงหรือไม่)
                 actual_values = original_data.loc[original_nan_indexes, 'wl_up']
                 predicted_values = filled_data.loc[original_nan_indexes, 'wl_up']
-                mae = mean_absolute_error(actual_values, predicted_values)
-                rmse = np.sqrt(mean_squared_error(actual_values, predicted_values))
-                st.write(f"Mean Absolute Error (MAE): {mae:.4f}")
-                st.write(f"Root Mean Square Error (RMSE): {rmse:.4f}")
+                valid_index = actual_values.notna() & predicted_values.notna()
+                actual_values_clean = actual_values[valid_index]
+                predicted_values_clean = predicted_values[valid_index]
+
+                if not actual_values_clean.empty and not predicted_values_clean.empty:
+                    mae = mean_absolute_error(actual_values_clean, predicted_values_clean)
+                    rmse = np.sqrt(mean_squared_error(actual_values_clean, predicted_values_clean))
+
+                    st.subheader('ผลการคำนวณความแม่นยำ')
+                    st.write(f"Mean Absolute Error (MAE): {mae:.4f}")
+                    st.write(f"Root Mean Square Error (RMSE): {rmse:.4f}")
+                else:
+                    st.subheader('ผลการคำนวณความแม่นยำ')
+                    st.write("ไม่สามารถคำนวณได้เพราะไม่มีค่าจริง")
 
                 # แสดงกราฟข้อมูลที่เติมค่าแล้ว
                 st.subheader('กราฟผลลัพธ์การเติมค่า')
